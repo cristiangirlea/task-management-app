@@ -84,6 +84,10 @@ return [
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
 
+    'api_secret_key' => env('API_SECRET_KEY'),
+
+    'nonce_expiration' => env('NONCE_EXPIRATION', 300),
+
     /*
     |--------------------------------------------------------------------------
     | Encryption Key
