@@ -14,8 +14,9 @@ return new class extends Migration
         Schema::create('tasks', function (Blueprint $table) {
             $table->id();
             $table->string('name');  // Task name
+            $table->text('description')->nullable();
             $table->integer('priority');  // Priority for ordering
-            $table->foreignId('project_id')->constrained()->onDelete('cascade');  // Linked to a project
+            $table->foreignId('project_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }

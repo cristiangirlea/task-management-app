@@ -15,6 +15,7 @@ class UpdateTaskRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000', // Description is optional, must be a string, and max 1000 characters
         ];
     }
 
@@ -22,6 +23,8 @@ class UpdateTaskRequest extends FormRequest
     {
         return [
             'name.required' => 'Task name is required for updates.',
+            'description.string' => 'The description must be a valid string.',
+            'description.max' => 'The description cannot exceed 1000 characters.',
         ];
     }
 }

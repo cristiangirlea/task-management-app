@@ -8,14 +8,14 @@ class StoreTaskRequest extends FormRequest
 {
     public function authorize()
     {
-        return true;  // Allow all requests for now
+        return true;
     }
 
     public function rules()
     {
         return [
             'name' => 'required|string|max:255',
-            'project_id' => 'required|exists:projects,id',
+            'description' => 'nullable|string|max:1000', // Description is optional, must be a string, and max 1000 characters
         ];
     }
 
@@ -23,8 +23,8 @@ class StoreTaskRequest extends FormRequest
     {
         return [
             'name.required' => 'Task name is required.',
-            'project_id.required' => 'A valid project ID is required.',
+            'description.string' => 'The description must be a valid string.',
+            'description.max' => 'The description cannot exceed 1000 characters.',
         ];
     }
 }
-
