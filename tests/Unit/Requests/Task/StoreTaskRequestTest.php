@@ -1,17 +1,20 @@
 <?php
 
-namespace Tests\Unit\Requests;
+namespace Tests\Unit\Requests\Project\Requests\Task;
 
 use Illuminate\Support\Facades\Validator;
 use Tests\TestCase;
 
-class UpdateProjectRequestTest extends TestCase
+class StoreTaskRequestTest extends TestCase
 {
-    public function test_valid_update_project_request()
+    /**
+     * Test valid input.
+     */
+    public function test_valid_input()
     {
         $data = [
-            'name' => 'Updated Project Name',
-            'description' => 'This is an updated project description.',
+            'name' => 'Valid Task Name',
+            'description' => 'This is a valid task description.',
         ];
 
         $validator = Validator::make($data, [
@@ -22,10 +25,13 @@ class UpdateProjectRequestTest extends TestCase
         $this->assertTrue($validator->passes());
     }
 
-    public function test_missing_name_in_update_project_request()
+    /**
+     * Test missing name field.
+     */
+    public function test_missing_name_field()
     {
         $data = [
-            'description' => 'Valid description but no name.',
+            'description' => 'This is a valid description.',
         ];
 
         $validator = Validator::make($data, [
@@ -37,11 +43,14 @@ class UpdateProjectRequestTest extends TestCase
         $this->assertArrayHasKey('name', $validator->errors()->toArray());
     }
 
-    public function test_invalid_description_in_update_project_request()
+    /**
+     * Test invalid description type.
+     */
+    public function test_invalid_description_type()
     {
         $data = [
-            'name' => 'Valid Name',
-            'description' => ['invalid', 'array'],
+            'name' => 'Valid Task Name',
+            'description' => 12345, // Invalid type
         ];
 
         $validator = Validator::make($data, [
@@ -53,10 +62,13 @@ class UpdateProjectRequestTest extends TestCase
         $this->assertArrayHasKey('description', $validator->errors()->toArray());
     }
 
-    public function test_description_exceeds_max_length_in_update_project_request()
+    /**
+     * Test description exceeds max length.
+     */
+    public function test_description_exceeds_max_length()
     {
         $data = [
-            'name' => 'Valid Name',
+            'name' => 'Valid Task Name',
             'description' => str_repeat('a', 1001), // 1001 characters
         ];
 

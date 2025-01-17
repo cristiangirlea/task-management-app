@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Project;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreTaskRequest extends FormRequest
+class UpdateProjectRequest extends FormRequest
 {
     public function authorize()
     {
-        return true;
+        return true;  // Allow all requests for now
     }
 
     public function rules()
@@ -22,7 +22,7 @@ class StoreTaskRequest extends FormRequest
     public function messages()
     {
         return [
-            'name.required' => 'Task name is required.',
+            'name.required' => 'Project name is required.',
             'description.string' => 'The description must be a valid string.',
             'description.max' => 'The description cannot exceed 1000 characters.',
         ];

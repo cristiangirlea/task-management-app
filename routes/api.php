@@ -2,10 +2,23 @@
 
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\ProjectController;
 
 use App\Http\Middleware\VerifyInternalRequest;
+
+// Public routes
+Route::post('/register', [UserController::class, 'register']);
+Route::post('/login', [UserController::class, 'login']);
+
+// Protected routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', [UserController::class, 'getUser']);
+    Route::put('/user', [UserController::class, 'updateUser']);
+    Route::delete('/user', [UserController::class, 'deleteUser']);
+    Route::post('/logout', [UserController::class, 'logout']);
+});
 
 Route::middleware([VerifyInternalRequest::class])->group(function () {
     Route::get('/projects', [ProjectController::class, 'index']);

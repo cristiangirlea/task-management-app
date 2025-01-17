@@ -1,11 +1,11 @@
 <?php
 
-namespace Tests\Unit;
+namespace Tests\Unit\Requests\Project;
 
 use Illuminate\Support\Facades\Validator;
 use Tests\TestCase;
 
-class StoreTaskRequestTest extends TestCase
+class StoreProjectRequestTest extends TestCase
 {
     /**
      * Test valid input.
@@ -13,8 +13,8 @@ class StoreTaskRequestTest extends TestCase
     public function test_valid_input()
     {
         $data = [
-            'name' => 'Valid Task Name',
-            'description' => 'This is a valid task description.',
+            'name' => 'Valid Project Name',
+            'description' => 'This is a valid project description.',
         ];
 
         $validator = Validator::make($data, [
@@ -49,8 +49,8 @@ class StoreTaskRequestTest extends TestCase
     public function test_invalid_description_type()
     {
         $data = [
-            'name' => 'Valid Task Name',
-            'description' => 12345, // Invalid type
+            'name' => 'Valid Project Name',
+            'description' => ['not', 'a', 'string'],
         ];
 
         $validator = Validator::make($data, [
@@ -68,7 +68,7 @@ class StoreTaskRequestTest extends TestCase
     public function test_description_exceeds_max_length()
     {
         $data = [
-            'name' => 'Valid Task Name',
+            'name' => 'Valid Project Name',
             'description' => str_repeat('a', 1001), // 1001 characters
         ];
 
