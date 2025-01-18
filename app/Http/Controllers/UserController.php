@@ -5,13 +5,13 @@ namespace App\Http\Controllers;
 use App\Http\Requests\LoginUserRequest;
 use App\Http\Requests\RegisterUserRequest;
 use App\Http\Requests\UpdateUserRequest;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 
-class UserController extends Controller
+class UserController extends ApiBaseController
 {
     // Register a new user
     public function register(RegisterUserRequest $request)
@@ -22,29 +22,33 @@ class UserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        return response()->json(['message' => 'User registered successfully'], 201);
+        return $this->respondApiSuccess(UserResource::class, $user, 'User registered successfully', 201);
     }
 
     // Login a user and generate a token
     public function login(LoginUserRequest $request)
     {
         if (!Auth::attempt($request->only('email', 'password'))) {
-            return response()->json(['message' => 'Invalid credentials'], 401);
+            return $this->respondApiError('Invalid credentials', 401);
         }
 
-        $token = $request->user()->createToken('auth_token')->plainTextToken;
+        $user = $request->user();
+        $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json([
-            'message' => 'Login successful',
-            'token' => $token,
-            'user' => $request->user(),
-        ]);
+        return $this->respondApiSuccess(
+            UserResource::class,
+            [
+                'user' => $user,
+                'token' => $token,
+            ],
+            'Login successful'
+        );
     }
 
     // Get authenticated user data
     public function getUser(Request $request)
     {
-        return response()->json($request->user());
+        return $this->respondApiSuccess(UserResource::class, $request->user(), 'User data retrieved successfully');
     }
 
     // Update authenticated user data
@@ -58,7 +62,7 @@ class UserController extends Controller
 
         $user->save();
 
-        return response()->json(['message' => 'User updated successfully', 'user' => $user]);
+        return $this->respondApiSuccess(UserResource::class, $user, 'User updated successfully');
     }
 
     // Delete authenticated user
@@ -68,7 +72,7 @@ class UserController extends Controller
         $user->tokens()->delete(); // Revoke all tokens
         $user->delete();
 
-        return response()->json(['message' => 'User deleted successfully']);
+        return $this->respondApiSuccess(null, null, 'User deleted successfully', 204);
     }
 
     // Logout the authenticated user
@@ -76,6 +80,6 @@ class UserController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
 
-        return response()->json(['message' => 'Logged out successfully']);
+        return $this->respondApiSuccess(null, null, 'Logged out successfully');
     }
 }

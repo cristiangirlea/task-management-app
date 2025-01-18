@@ -4,54 +4,51 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Task\StoreTaskRequest;
 use App\Http\Requests\Task\UpdateTaskRequest;
-use App\Models\Task;
+use App\Http\Resources\TaskResource;
+use App\Services\TaskService;
 use Illuminate\Http\Request;
 
-class TaskController extends Controller
+class TaskController extends ApiBaseController
 {
+    protected $taskService;
+
+    public function __construct(TaskService $taskService)
+    {
+        $this->taskService = $taskService;
+    }
+
     public function index(Request $request)
     {
-        $tasks = Task::where('project_id', $request->query('project_id'))
-            ->orderBy('priority')
-            ->get();
+        $tasks = $this->taskService->getTasksByProject($request->query('project_id'));
 
-        return response()->json($tasks);
+        return $this->respondApiSuccess(TaskResource::class, $tasks, 'Tasks retrieved successfully');
     }
 
     public function store(StoreTaskRequest $request)
     {
-        $maxPriority = Task::where('project_id', $request->input('project_id'))->max('priority') ?? 0;
+        $task = $this->taskService->createTask($request->validated());
 
-        $task = Task::create([
-            'name' => $request->input('name'),
-            'project_id' => $request->input('project_id'),
-            'priority' => $maxPriority + 1,
-        ]);
-
-        return response()->json($task, 201);
+        return $this->respondApiSuccess(TaskResource::class, $task, 'Task created successfully', 201);
     }
 
-    public function update(UpdateTaskRequest $request, Task $task)
+    public function update(UpdateTaskRequest $request, $id)
     {
-        $task->update($request->validated());
+        $task = $this->taskService->updateTask($id, $request->validated());
 
-        return response()->json($task);
+        return $this->respondApiSuccess(TaskResource::class, $task, 'Task updated successfully');
     }
 
-    public function destroy(Task $task)
+    public function destroy($id)
     {
-        $task->delete();
+        $this->taskService->deleteTask($id);
 
-        return response()->json(['message' => 'Task deleted successfully'], 204);
+        return $this->respondApiSuccess(null, null, 'Task deleted successfully', 204);
     }
 
     public function reorder(Request $request)
     {
-        $priorities = $request->input('priorities');
-        foreach ($priorities as $index => $taskId) {
-            Task::where('id', $taskId)->update(['priority' => $index + 1]);
-        }
+        $this->taskService->reorderTasks($request->input('priorities'));
 
-        return response()->json(['message' => 'Tasks reordered successfully.']);
+        return $this->respondApiSuccess(null, null, 'Tasks reordered successfully');
     }
 }

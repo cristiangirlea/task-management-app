@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\TenantControllerWeb;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\UserController;
@@ -20,11 +21,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [UserController::class, 'logout']);
 });
 
+
+
 Route::middleware([VerifyInternalRequest::class])->group(function () {
     Route::get('/projects', [ProjectController::class, 'index']);
     Route::post('/projects', [ProjectController::class, 'store']);
     Route::put('/projects/{project}', [ProjectController::class, 'update']);
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy']);
+});
+
+Route::middleware([VerifyInternalRequest::class])->group(function () {
+    Route::apiResource('tenants', TenantControllerWeb::class);
 });
 
 Route::middleware([VerifyInternalRequest::class])->group(function () {
