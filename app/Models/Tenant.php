@@ -16,7 +16,18 @@ class Tenant extends Model
      */
     protected $fillable = [
         'name',
+        'slug',
         'domain',
+        'settings',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'settings' => 'array',
     ];
 
     /**
@@ -25,5 +36,37 @@ class Tenant extends Model
     public function users()
     {
         return $this->hasMany(User::class);
+    }
+
+    /**
+     * A tenant has many projects.
+     */
+    public function projects()
+    {
+        return $this->hasMany(Project::class);
+    }
+
+    /**
+     * Scope a query to find a tenant by domain.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $domain
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeByDomain($query, string $domain)
+    {
+        return $query->where('domain', $domain);
+    }
+
+    /**
+     * Scope a query to find a tenant by slug.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param string $slug
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeBySlug($query, string $slug)
+    {
+        return $query->where('slug', $slug);
     }
 }

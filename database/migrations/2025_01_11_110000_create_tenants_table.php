@@ -13,8 +13,10 @@ return new class extends Migration
     {
         Schema::create('tenants', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique(); // Tenant name
-            $table->string('domain')->unique()->nullable(); // Tenant domain (optional)
+            $table->string('name'); // Hospital, School, etc.
+            $table->string('slug')->unique();
+            $table->string('domain')->unique()->nullable(); // For custom domains
+            $table->json('settings')->nullable(); // Store tenant-specific configurations
             $table->timestamps();
         });
     }

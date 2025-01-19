@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');  // Project name
             $table->text('description')->nullable();
+            $table->foreignId('tenant_id')->constrained('tenants')->cascadeOnDelete(); // Add tenant_id foreign key
             $table->timestamps();
         });
     }
