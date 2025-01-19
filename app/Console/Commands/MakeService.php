@@ -9,15 +9,11 @@ class MakeService extends Command
 {
     /**
      * The name and signature of the console command.
-     *
-     * @var string
      */
-    protected $signature = 'make:service {name : The name of the service}';
+    protected $signature = 'make:service {name : The name of the service class}';
 
     /**
      * The console command description.
-     *
-     * @var string
      */
     protected $description = 'Create a new service class';
 
@@ -34,7 +30,7 @@ class MakeService extends Command
      */
     public function handle(): int
     {
-        $name = $this->argument('name');
+        $name = ucfirst($this->argument('name')); // Normalize the class name
         $path = app_path("Services/{$name}.php");
 
         if ($this->files->exists($path)) {
@@ -45,8 +41,13 @@ class MakeService extends Command
         $this->files->ensureDirectoryExists(app_path('Services'));
         $this->files->put($path, $this->getStub($name));
 
-        $this->info("Service {$name} created successfully.");
-        return Command::SUCCESS;
+        if ($this->files->exists($path)) {
+            $this->info("Service {$name} created successfully.");
+            return Command::SUCCESS;
+        } else {
+            $this->error("Failed to create Service {$name}.");
+            return Command::FAILURE;
+        }
     }
 
     /**

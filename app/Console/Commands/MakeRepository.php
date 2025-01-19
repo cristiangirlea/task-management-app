@@ -9,15 +9,11 @@ class MakeRepository extends Command
 {
     /**
      * The name and signature of the console command.
-     *
-     * @var string
      */
-    protected $signature = 'make:repository {name : The name of the repository}';
+    protected $signature = 'make:repository {name : The name of the repository class}';
 
     /**
      * The console command description.
-     *
-     * @var string
      */
     protected $description = 'Create a new repository class';
 
@@ -34,7 +30,7 @@ class MakeRepository extends Command
      */
     public function handle(): int
     {
-        $name = $this->argument('name');
+        $name = ucfirst($this->argument('name')); // Normalize the class name
         $path = app_path("Repositories/{$name}.php");
 
         if ($this->files->exists($path)) {
@@ -45,8 +41,13 @@ class MakeRepository extends Command
         $this->files->ensureDirectoryExists(app_path('Repositories'));
         $this->files->put($path, $this->getStub($name));
 
-        $this->info("Repository {$name} created successfully.");
-        return Command::SUCCESS;
+        if ($this->files->exists($path)) {
+            $this->info("Repository {$name} created successfully.");
+            return Command::SUCCESS;
+        } else {
+            $this->error("Failed to create Repository {$name}.");
+            return Command::FAILURE;
+        }
     }
 
     /**
