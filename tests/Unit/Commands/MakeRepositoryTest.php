@@ -4,24 +4,21 @@ namespace Tests\Unit\Commands;
 
 class MakeRepositoryTest extends MakeCommandTest
 {
-    protected function getPath(): string
+    protected function setUp(): void
     {
-        return 'app/Repositories';
-    }
+        parent::setUp();
 
-    protected function getCommandName(): string
-    {
-        return 'make:repository';
-    }
-
-    protected function getNamespace(): string
-    {
-        return 'App\\Repositories';
+        // Dynamically configure all necessary options for the test
+        $this->setPath('Repositories');
+        $this->setCommandName('make:repository');
+        $this->setNamespace('App\\Repositories');
     }
 
     public function test_it_creates_a_repository(): void
     {
-        $this->runCommand('TestRepository');
+        $className = 'TestRepository';
+        $this->runCommand($className);
+        $this->assertFileHasNamespace($className);
     }
 
     public function test_it_does_not_create_duplicate_repositories(): void

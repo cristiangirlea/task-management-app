@@ -4,24 +4,21 @@ namespace Tests\Unit\Commands;
 
 class MakeServiceTest extends MakeCommandTest
 {
-    protected function getPath(): string
+    protected function setUp(): void
     {
-        return 'app/Services';
-    }
+        parent::setUp();
 
-    protected function getCommandName(): string
-    {
-        return 'make:service';
-    }
-
-    protected function getNamespace(): string
-    {
-        return 'App\\Services';
+        // Dynamically configure all necessary options for the test
+        $this->setPath('Services');
+        $this->setCommandName('make:service');
+        $this->setNamespace('App\\Services');
     }
 
     public function test_it_creates_a_service(): void
     {
-        $this->runCommand('TestService');
+        $className = 'TestService';
+        $this->runCommand($className);
+        $this->assertFileHasNamespace($className);
     }
 
     public function test_it_does_not_create_duplicate_services(): void
