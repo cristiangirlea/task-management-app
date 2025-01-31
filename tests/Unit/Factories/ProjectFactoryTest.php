@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Unit\Requests\Project\Factories;
+namespace Tests\Unit\Factories;
 
 use App\Models\Project;
 use Illuminate\Foundation\Testing\RefreshDatabase;

@@ -2,8 +2,6 @@
 
 namespace Tests\Unit\Handler;
 
-namespace Tests\Unit\Handler;
-
 use App\Exceptions\Handler;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;

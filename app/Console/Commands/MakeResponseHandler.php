@@ -57,55 +57,24 @@ class MakeResponseHandler extends Command
      */
     protected function getStub(string $controllerName): string
     {
-        $handlerName = "{$controllerName}";
+        $handlerName = "{$controllerName}ResponseHandler";
+        $resourceName = str_replace('ResponseHandler', '', $handlerName);
 
         return <<<EOT
 <?php
 
 namespace App\Http\Responses;
 
-use Illuminate\Http\JsonResponse;
+use App\Handlers\ResponseHandler;
 
-class {$handlerName} extends ApiResponseHandler
+final class {$handlerName} extends ResponseHandler
 {
     /**
-     * Handle the response for the index method.
+     * Define the name of the resource.
      */
-    public function indexResponse(\$data, string \$message = 'Data retrieved successfully'): JsonResponse
+    protected function getResourceName(): string
     {
-        return \$this->successResponse(\$data, \$message);
-    }
-
-    /**
-     * Handle the response for the store method.
-     */
-    public function storeResponse(\$data, string \$message = 'Resource created successfully', int \$status = 201): JsonResponse
-    {
-        return \$this->successResponse(\$data, \$message, \$status);
-    }
-
-    /**
-     * Handle the response for the show method.
-     */
-    public function showResponse(\$data, string \$message = 'Resource retrieved successfully'): JsonResponse
-    {
-        return \$this->successResponse(\$data, \$message);
-    }
-
-    /**
-     * Handle the response for the update method.
-     */
-    public function updateResponse(\$data, string \$message = 'Resource updated successfully'): JsonResponse
-    {
-        return \$this->successResponse(\$data, \$message);
-    }
-
-    /**
-     * Handle the response for the destroy method.
-     */
-    public function destroyResponse(string \$message = 'Resource deleted successfully', int \$status = 204): JsonResponse
-    {
-        return \$this->successResponse(null, \$message, \$status);
+        return '{$resourceName}';
     }
 }
 EOT;
