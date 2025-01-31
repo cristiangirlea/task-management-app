@@ -9,7 +9,9 @@ class UserControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
+    /**
+     * Test creating a new user.
+     */
     public function it_can_register_a_user()
     {
         $response = $this->postJson('/api/register', [
@@ -23,7 +25,9 @@ class UserControllerTest extends TestCase
         $this->assertDatabaseHas('users', ['email' => 'test@example.com']);
     }
 
-    /** @test */
+    /**
+     * Test login user.
+     */
     public function it_can_login_a_user()
     {
         $user = User::factory()->create([
@@ -40,7 +44,9 @@ class UserControllerTest extends TestCase
             ->assertJsonStructure(['message', 'token', 'user']);
     }
 
-    /** @test */
+    /**
+     * Test return user data.
+     */
     public function it_returns_user_data_for_authenticated_user()
     {
         $user = User::factory()->create();
@@ -58,7 +64,9 @@ class UserControllerTest extends TestCase
             ]);
     }
 
-    /** @test */
+    /**
+     * Test user update.
+     */
     public function it_can_update_user_data()
     {
         $user = User::factory()->create();
@@ -76,7 +84,9 @@ class UserControllerTest extends TestCase
         $this->assertDatabaseHas('users', ['email' => 'updated@example.com']);
     }
 
-    /** @test */
+    /**
+     * Test user delete.
+     */
     public function it_can_delete_a_user()
     {
         $user = User::factory()->create();
@@ -91,7 +101,9 @@ class UserControllerTest extends TestCase
         $this->assertDatabaseMissing('users', ['id' => $user->id]);
     }
 
-    /** @test */
+    /**
+     * Test user logout.
+     */
     public function it_can_logout_a_user()
     {
         $user = User::factory()->create();
