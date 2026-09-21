@@ -26,6 +26,7 @@ class TenantController extends ApiBaseController
     public function update(UpdateTenantRequest $request): JsonResponse
     {
         $tenant = $request->user()->tenant()->firstOrFail();
+        $this->authorize('manage', $tenant);
 
         $tenant = $this->tenantService->updateTenant($tenant, $request->validated());
         $tenant->loadCount('users');

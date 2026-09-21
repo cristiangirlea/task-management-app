@@ -13,7 +13,7 @@ Claude / other MCP clients ─────────────────�
 
 ## Features
 
-- Workspaces (tenants), users, projects and tasks with strict tenant isolation
+- Workspaces (tenants) with owner and member roles, email invitations, projects and tasks with strict tenant isolation
 - Kanban-ready tasks: `status` column, `position` inside the column, `priority` 1–5, due dates, assignee
 - Token authentication with Laravel Sanctum (browser sessions and personal access tokens for agents/scripts)
 - Consistent JSON envelope and localized messages (English, French)
@@ -51,11 +51,15 @@ For the full stack (Postgres, Redis, nginx, frontend) see
 | `DB_*` | Database connection (PostgreSQL by default, SQLite supported) |
 | `REDIS_*` | Cache/queue backend when `CACHE_STORE`/`QUEUE_CONNECTION` are set to `redis` |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated browser origins allowed to call `/api` and `/mcp` (default `*`) |
+| `FRONTEND_URL` | Where the Next.js app lives; invitation links point at `<FRONTEND_URL>/invite/<token>` |
+| `MAIL_*` | Mailer for invitation emails (`log` by default) |
 | `APP_LOCALE` | `en` or `fr` for API messages |
 
 ## Authentication and tenancy
 
-- `POST /api/register` creates a **workspace (tenant)** and its first user, and returns a bearer token.
+- `POST /api/register` creates a **workspace (tenant)** and its first user (the **owner**), and returns a bearer token.
+- Owners invite people by email; invitees accept at `<FRONTEND_URL>/invite/<token>` and join as **members**.
+  Owners manage the workspace name, members and invitations; members use projects and tasks.
 - Every other route requires `Authorization: Bearer <token>`.
 - All project and task queries are scoped to the token owner's tenant by a global Eloquent scope
   (`App\Models\Scopes\TenantScope`); policies (`App\Policies\*`) are a second check.
@@ -79,7 +83,13 @@ All responses use one envelope:
 | POST | `/api/login` | `email, password` | `data: {user, token}` |
 | POST | `/api/logout` | | revokes the current token |
 | GET / PUT / DELETE | `/api/user` | `name?, email?, password?` | current user (includes `tenant`) |
-| GET / PUT | `/api/tenant` | `name?, slug?, domain?, settings?` | current workspace |
+| GET / PUT | `/api/tenant` | `name?, slug?, domain?, settings?` | current workspace (PUT: owners only) |
+| GET | `/api/tenant/members` | | members with roles |
+| DELETE | `/api/tenant/members/{id}` | | owners only; removes the account, their tasks become unassigned |
+| GET / POST | `/api/tenant/invitations` | `email` | pending invitations / invite (owners only, sends an email) |
+| DELETE | `/api/tenant/invitations/{id}` | | revoke |
+| GET | `/api/invitations/{token}` | | public preview of an invitation |
+| POST | `/api/invitations/{token}/accept` | `name, password, password_confirmation` | public; creates the member and returns `{user, token}` |
 | GET / POST | `/api/tokens` | `name` | list tokens / create one (plain-text token returned once) |
 | DELETE | `/api/tokens/{id}` | | revoke |
 | GET / POST | `/api/projects` | `name, description?` | `tasks_count` included |
@@ -102,6 +112,7 @@ as one user inside one workspace and sees exactly what that user sees.
 | --- | --- |
 | `list_projects` | Projects in the workspace with task counts |
 | `create_project` | Create a project |
+| `list_members` | People in the workspace, for assigning tasks |
 | `list_tasks` | Tasks, filterable by `project_id` and `status`, in board order |
 | `create_task` | Create a task at the bottom of a column |
 | `update_task` | Change title, description, priority, due date, assignee, status or project |
@@ -157,7 +168,7 @@ resources/lang         en / fr messages
 
 ## Roadmap
 
-- Invite users to a workspace, password reset, email verification
+- Password reset, email verification, workspace switching (one workspace per account today)
 - Real-time board updates (Laravel Reverb)
 - Pagination on list endpoints
 - Upgrade to Laravel 13

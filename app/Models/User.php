@@ -14,11 +14,16 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
+    public const ROLE_OWNER = 'owner';
+
+    public const ROLE_MEMBER = 'member';
+
     protected $fillable = [
         'name',
         'email',
         'password',
         'tenant_id',
+        'role',
     ];
 
     protected $hidden = [
@@ -45,6 +50,11 @@ class User extends Authenticatable
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+    public function isOwner(): bool
+    {
+        return $this->role === self::ROLE_OWNER;
     }
 
     public function scopeByEmailDomain(Builder $query, string $domain): Builder

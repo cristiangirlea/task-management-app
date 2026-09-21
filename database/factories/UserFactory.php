@@ -17,12 +17,18 @@ class UserFactory extends Factory
     {
         return [
             'tenant_id' => Tenant::factory(),
+            'role' => User::ROLE_OWNER,
             'name' => $this->faker->name(),
             'email' => $this->faker->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => Hash::make('password'),
             'remember_token' => Str::random(10),
         ];
+    }
+
+    public function member(): static
+    {
+        return $this->state(fn () => ['role' => User::ROLE_MEMBER]);
     }
 
     public function unverified(): static

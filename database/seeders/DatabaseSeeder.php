@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
 
         $user = User::factory()->create([
             'tenant_id' => $tenant->id,
+            'role' => User::ROLE_OWNER,
             'name' => 'Demo User',
             'email' => 'demo@example.com',
             'password' => 'password',

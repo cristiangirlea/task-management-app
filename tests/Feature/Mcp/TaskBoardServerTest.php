@@ -6,6 +6,7 @@ use App\Mcp\Servers\TaskBoardServer;
 use App\Mcp\Tools\CreateProject;
 use App\Mcp\Tools\CreateTask;
 use App\Mcp\Tools\DeleteTask;
+use App\Mcp\Tools\ListMembers;
 use App\Mcp\Tools\ListProjects;
 use App\Mcp\Tools\ListTasks;
 use App\Mcp\Tools\MoveTask;
@@ -39,6 +40,7 @@ class TaskBoardServerTest extends TestCase
         TaskBoardServer::tools()->assertRegistered([
             ListProjects::class,
             CreateProject::class,
+            ListMembers::class,
             ListTasks::class,
             CreateTask::class,
             UpdateTask::class,
@@ -56,6 +58,18 @@ class TaskBoardServerTest extends TestCase
             ->assertOk()
             ->assertSee('Launch')
             ->assertDontSee('Somebody elses project');
+    }
+
+    public function test_list_members_shows_only_the_workspace(): void
+    {
+        User::factory()->member()->create(['tenant_id' => $this->user->tenant_id, 'name' => 'Colleague']);
+        User::factory()->create(['name' => 'Outsider']);
+
+        TaskBoardServer::actingAs($this->user)
+            ->tool(ListMembers::class)
+            ->assertOk()
+            ->assertSee('Colleague')
+            ->assertDontSee('Outsider');
     }
 
     public function test_create_project(): void

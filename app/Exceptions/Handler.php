@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
@@ -45,6 +46,13 @@ class Handler extends ExceptionHandler
                 'status' => 'error',
                 'message' => 'API endpoint not found.',
             ], 404);
+        }
+
+        if ($exception instanceof AuthorizationException) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $exception->getMessage() ?: 'This action is unauthorized.',
+            ], 403);
         }
 
         if ($exception instanceof AuthenticationException) {

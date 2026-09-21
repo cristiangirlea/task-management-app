@@ -45,6 +45,11 @@ class Tenant extends Model
         return $this->hasMany(Task::class);
     }
 
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(Invitation::class);
+    }
+
     public function scopeByDomain(Builder $query, string $domain): Builder
     {
         return $query->where('domain', $domain);
