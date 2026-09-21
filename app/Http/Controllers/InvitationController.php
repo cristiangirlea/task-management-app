@@ -10,8 +10,11 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
- * Pending invitations of the current workspace. Any member can see them;
- * only owners can create or revoke them (TenantPolicy::manage).
+ * Pending invitations of the current workspace, owners only.
+ *
+ * Listing is owner-gated like creating and revoking, because an invitation's
+ * accept link contains the token that authenticates the invitee: anyone who
+ * can read it can consume the invitation and take the invited identity.
  */
 class InvitationController extends ApiBaseController
 {
@@ -19,7 +22,7 @@ class InvitationController extends ApiBaseController
 
     public function index(Request $request): JsonResponse
     {
-        $this->authorize('view', $request->user()->tenant);
+        $this->authorize('manage', $request->user()->tenant);
 
         $pending = Invitation::pending()->with('inviter')->latest()->get();
 
@@ -29,7 +32,6 @@ class InvitationController extends ApiBaseController
     public function store(StoreInvitationRequest $request): JsonResponse
     {
         $tenant = $request->user()->tenant;
-        $this->authorize('manage', $tenant);
 
         $invitation = $this->invitations->invite($tenant, $request->user(), $request->input('email'));
 

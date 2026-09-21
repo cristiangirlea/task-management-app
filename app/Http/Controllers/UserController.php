@@ -66,6 +66,16 @@ class UserController extends ApiBaseController
         $user = $request->user();
         $user->fill($request->validated())->save();
 
+        // Changing the password ends every other session, matching a reset:
+        // whoever is locked out is meant to be locked out.
+        if ($request->filled('password')) {
+            $current = $request->user()->currentAccessToken();
+
+            $user->tokens()
+                ->when($current instanceof PersonalAccessToken, fn ($query) => $query->whereKeyNot($current->id))
+                ->delete();
+        }
+
         return $this->respondApiSuccess(UserResource::class, $user->load('tenant'), 'User updated successfully');
     }
 

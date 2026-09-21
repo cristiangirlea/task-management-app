@@ -7,9 +7,15 @@ use Illuminate\Validation\Rule;
 
 class StoreInvitationRequest extends FormRequest
 {
+    /**
+     * Owners only. This runs before the rules below, so a member cannot use
+     * the uniqueness checks to discover which addresses have accounts.
+     */
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        return $user !== null && $user->can('manage', $user->tenant);
     }
 
     public function rules(): array

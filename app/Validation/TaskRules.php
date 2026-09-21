@@ -3,6 +3,7 @@
 namespace App\Validation;
 
 use App\Models\Task;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
 
@@ -65,18 +66,32 @@ class TaskRules
         ];
     }
 
-    public static function projectExists(int $tenantId): Exists
+    public static function projectExists(?int $tenantId): Exists
     {
-        return Rule::exists('projects', 'id')->where('tenant_id', $tenantId);
+        return static::scoped(Rule::exists('projects', 'id'), $tenantId);
     }
 
-    public static function userExists(int $tenantId): Exists
+    public static function userExists(?int $tenantId): Exists
     {
-        return Rule::exists('users', 'id')->where('tenant_id', $tenantId);
+        return static::scoped(Rule::exists('users', 'id'), $tenantId);
     }
 
-    public static function taskExists(int $tenantId): Exists
+    public static function taskExists(?int $tenantId): Exists
     {
-        return Rule::exists('tasks', 'id')->where('tenant_id', $tenantId)->whereNull('deleted_at');
+        return static::scoped(Rule::exists('tasks', 'id'), $tenantId)->whereNull('deleted_at');
+    }
+
+    /**
+     * Confine an existence check to one workspace.
+     *
+     * A caller with no workspace matches nothing rather than everything: such
+     * a user should not be able to reference any record, and should get a
+     * validation failure rather than a crash.
+     */
+    private static function scoped(Exists $rule, ?int $tenantId): Exists
+    {
+        return $tenantId === null
+            ? $rule->where(fn (Builder $query) => $query->whereRaw('1 = 0'))
+            : $rule->where('tenant_id', $tenantId);
     }
 }

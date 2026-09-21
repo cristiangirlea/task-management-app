@@ -61,6 +61,11 @@ For the full stack (Postgres, Redis, nginx, frontend) see
 - `POST /api/register` creates a **workspace (tenant)** and its first user (the **owner**), and returns a bearer token.
 - Owners invite people by email; invitees accept at `<FRONTEND_URL>/invite/<token>` and join as **members**.
   Owners manage the workspace name, members and invitations; members use projects and tasks.
+  Listing invitations is owner-only, because an invitation's accept link *is* the invitee's
+  credential: anyone who can read it can consume the invitation and take that identity.
+- The tenant scope fails closed. A user with no workspace reaches nothing, rather than
+  everything, which matters when upgrading a database written by an older release.
+- Changing or resetting a password revokes the account's other tokens.
 - Every other route requires `Authorization: Bearer <token>`.
 - All project and task queries are scoped to the token owner's tenant by a global Eloquent scope
   (`App\Models\Scopes\TenantScope`); policies (`App\Policies\*`) are a second check.
