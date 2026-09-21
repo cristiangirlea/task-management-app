@@ -33,4 +33,4 @@ jobs:
         run: vendor/bin/pint --test
 
       - name: Tests (Pest, SQLite in-memory)
-        run: vendor/bin/pest --ci
+        run: vendor/bin/pest --ci --colors=never

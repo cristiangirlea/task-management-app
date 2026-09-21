@@ -1,6 +1,6 @@
 # Task Management API
 
-Multi-tenant task management backend built with Laravel 12. It powers the
+Multi-tenant task management backend built with Laravel 13. It powers the
 [Next.js Kanban frontend](https://github.com/cristiangirlea/task-management-next-react)
 and exposes the same data to AI agents through an [MCP](https://modelcontextprotocol.io) server.
 
@@ -171,5 +171,4 @@ resources/lang         en / fr messages
 - Password reset, email verification, workspace switching (one workspace per account today)
 - Real-time board updates (Laravel Reverb)
 - Pagination on list endpoints
-- Upgrade to Laravel 13
 - OAuth (Passport) for MCP clients that cannot send a static bearer token
