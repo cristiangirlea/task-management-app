@@ -7,6 +7,8 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Routing\Exceptions\InvalidSignatureException;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -17,6 +19,12 @@ class Handler extends ExceptionHandler
 {
     public function render($request, Throwable $exception)
     {
+        // The emailed verification link is opened by a browser, not by the SPA,
+        // so it is handled as a web request even though it lives under /api.
+        if ($exception instanceof InvalidSignatureException) {
+            return $this->handleInvalidSignature();
+        }
+
         if ($request->expectsJson() || $request->is('api/*') || $request->is('mcp/*')) {
             return $this->handleApiException($exception);
         }
@@ -79,6 +87,15 @@ class Handler extends ExceptionHandler
         }
 
         return response()->json($payload, 500);
+    }
+
+    /**
+     * A tampered or expired signed link (the email verification URL) should
+     * send the visitor back to the app with an explanation, not a 403 page.
+     */
+    protected function handleInvalidSignature(): RedirectResponse
+    {
+        return redirect()->away(rtrim((string) config('app.frontend_url'), '/').'/verify-email?status=expired');
     }
 
     protected function handleWebException(Throwable $exception): Response

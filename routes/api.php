@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\InvitationAcceptController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TenantController;
@@ -10,11 +12,18 @@ use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
-// Public
-Route::post('/register', [UserController::class, 'register'])->name('register');
-Route::post('/login', [UserController::class, 'login'])->name('login');
+// Public. The unauthenticated endpoints are throttled (see AppServiceProvider).
+Route::post('/register', [UserController::class, 'register'])->middleware('throttle:register')->name('register');
+Route::post('/login', [UserController::class, 'login'])->middleware('throttle:login')->name('login');
+Route::post('/forgot-password', [PasswordResetController::class, 'sendLink'])->middleware('throttle:mail')->name('password.email');
+Route::post('/reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:mail')->name('password.reset');
 Route::get('/invitations/{token}', [InvitationAcceptController::class, 'show'])->name('invitations.show');
-Route::post('/invitations/{token}/accept', [InvitationAcceptController::class, 'store'])->name('invitations.accept');
+Route::post('/invitations/{token}/accept', [InvitationAcceptController::class, 'store'])->middleware('throttle:register')->name('invitations.accept');
+
+// Opened from the inbox, so signed rather than authenticated; redirects to the SPA.
+Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+    ->middleware('signed')
+    ->name('verification.verify');
 
 // Everything else requires a Sanctum bearer token. Data access is scoped to
 // the token owner's tenant by the models' global scope plus policies.
@@ -23,6 +32,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/user', [UserController::class, 'updateUser'])->name('user.update');
     Route::delete('/user', [UserController::class, 'deleteUser'])->name('user.destroy');
     Route::post('/logout', [UserController::class, 'logout'])->name('logout');
+    Route::post('/email/verification-notification', [EmailVerificationController::class, 'resend'])
+        ->middleware('throttle:verification')
+        ->name('verification.send');
 
     Route::get('/tenant', [TenantController::class, 'show'])->name('tenant.show');
     Route::put('/tenant', [TenantController::class, 'update'])->name('tenant.update');

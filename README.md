@@ -16,6 +16,7 @@ Claude / other MCP clients ─────────────────�
 - Workspaces (tenants) with owner and member roles, email invitations, projects and tasks with strict tenant isolation
 - Kanban-ready tasks: `status` column, `position` inside the column, `priority` 1–5, due dates, assignee
 - Token authentication with Laravel Sanctum (browser sessions and personal access tokens for agents/scripts)
+- Password reset, email verification, and throttling on every unauthenticated endpoint
 - Consistent JSON envelope and localized messages (English, French)
 - MCP server so agents can list, create, update and move tasks on a user's behalf
 
@@ -80,7 +81,11 @@ All responses use one envelope:
 | Method | Path | Body / query | Notes |
 | --- | --- | --- | --- |
 | POST | `/api/register` | `name, email, password, password_confirmation, workspace_name?` | 201, `data: {user, token}` |
-| POST | `/api/login` | `email, password` | `data: {user, token}` |
+| POST | `/api/login` | `email, password` | `data: {user, token}`; throttled |
+| POST | `/api/forgot-password` | `email` | always 200, identical for unknown addresses (no account enumeration) |
+| POST | `/api/reset-password` | `token, email, password, password_confirmation` | revokes every existing token on success |
+| GET | `/api/email/verify/{id}/{hash}` | signed link from the email | marks the address verified, redirects to `<FRONTEND_URL>/verify-email?status=…` |
+| POST | `/api/email/verification-notification` | | resend (auth, throttled) |
 | POST | `/api/logout` | | revokes the current token |
 | GET / PUT / DELETE | `/api/user` | `name?, email?, password?` | current user (includes `tenant`) |
 | GET / PUT | `/api/tenant` | `name?, slug?, domain?, settings?` | current workspace (PUT: owners only) |
@@ -139,6 +144,21 @@ supported later through Laravel Passport, which `laravel/mcp` integrates with.
 Implementation: `app/Mcp/Servers/TaskBoardServer.php`, tools in `app/Mcp/Tools`, route in `routes/ai.php`,
 tests in `tests/Feature/Mcp`.
 
+## Rate limits
+
+Unauthenticated endpoints are throttled in `AppServiceProvider` to blunt credential
+stuffing, mass signups and mail floods:
+
+| Limiter | Applies to | Limit |
+| --- | --- | --- |
+| `login` | `POST /api/login` | 5/min per email+IP, 20/min per IP |
+| `register` | registration and invitation acceptance | 10/hour per IP |
+| `mail` | forgot/reset password | 3/min per email+IP, 20/hour per IP |
+| `verification` | resending the verification email | 3/min per user |
+
+The login limiter is keyed on the email *and* the IP so that flooding one address
+cannot lock its owner out from elsewhere.
+
 ## Development
 
 ```bash
@@ -168,7 +188,8 @@ resources/lang         en / fr messages
 
 ## Roadmap
 
-- Password reset, email verification, workspace switching (one workspace per account today)
+- Workspace switching (one workspace per account today)
+- Two-factor authentication
 - Real-time board updates (Laravel Reverb)
 - Pagination on list endpoints
 - OAuth (Passport) for MCP clients that cannot send a static bearer token

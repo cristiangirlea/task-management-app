@@ -9,6 +9,7 @@ use App\Http\Resources\UserResource;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\TenantService;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +39,8 @@ class UserController extends ApiBaseController
                 'role' => User::ROLE_OWNER,
             ]);
         });
+
+        event(new Registered($user));
 
         return $this->respondApiSuccess(null, $this->authPayload($user), __('auth.register.success'), 201);
     }

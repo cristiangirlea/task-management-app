@@ -44,6 +44,9 @@ class InvitationService
                 'password' => $data['password'],
             ]);
 
+            // Accepting the emailed invitation proves control of the address.
+            $user->markEmailAsVerified();
+
             $invitation->forceFill(['accepted_at' => now()])->save();
 
             return $user;
