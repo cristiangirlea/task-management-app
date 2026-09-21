@@ -2,9 +2,9 @@
 
 namespace Tests\Unit\Models;
 
+use App\Models\Project;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Models\Project;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -14,7 +14,7 @@ class TenantTest extends TestCase
 
     public function test_fillable_attributes()
     {
-        $tenant = new Tenant();
+        $tenant = new Tenant;
 
         $this->assertEquals(['name', 'slug', 'domain', 'settings'], $tenant->getFillable());
     }

@@ -3,88 +3,90 @@
 namespace App\Repositories;
 
 use App\Models\Task;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 
+/**
+ * All queries go through the Task model, so the tenant global scope applies.
+ */
 class TaskRepository
 {
     /**
-     * Get tasks by project ID.
+     * Tasks for the board, optionally filtered by project and/or status,
+     * ordered the way a Kanban column displays them.
      *
-     * @param int $projectId
-     * @return Collection
+     * @param  array{project_id?: int|null, status?: string|null}  $filters
      */
+    public function list(array $filters = []): Collection
+    {
+        return $this->query()
+            ->when($filters['project_id'] ?? null, fn (Builder $q, int $projectId) => $q->where('project_id', $projectId))
+            ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $q->where('status', $status))
+            ->orderBy('position')
+            ->orderBy('id')
+            ->get();
+    }
+
     public function getTasksByProject(int $projectId): Collection
     {
-        return Task::where('project_id', $projectId)->orderBy('priority')->get();
+        return $this->list(['project_id' => $projectId]);
     }
 
     /**
-     * Get the maximum priority for a project.
-     *
-     * @param int $projectId
-     * @return int
+     * Next free position at the bottom of a Kanban column.
      */
-    public function getMaxPriorityByProject(int $projectId): int
+    public function nextPosition(int $projectId, string $status): int
     {
-        return Task::where('project_id', $projectId)->max('priority') ?? 0;
+        $max = $this->query()
+            ->where('project_id', $projectId)
+            ->where('status', $status)
+            ->max('position');
+
+        return $max === null ? 0 : $max + 1;
     }
 
-    /**
-     * Create a new task.
-     *
-     * @param array $data
-     * @return Task
-     */
     public function create(array $data): Task
     {
         return Task::create($data);
     }
 
-    /**
-     * Find a task by ID.
-     *
-     * @param int $taskId
-     * @return Task
-     */
     public function find(int $taskId): Task
     {
         return Task::findOrFail($taskId);
     }
 
-    /**
-     * Update a task.
-     *
-     * @param Task $task
-     * @param array $data
-     * @return Task
-     */
+    public function findMany(array $ids): Collection
+    {
+        return $this->query()->whereIn('id', $ids)->orderBy('position')->get();
+    }
+
     public function update(Task $task, array $data): Task
     {
         $task->update($data);
+
         return $task;
     }
 
-    /**
-     * Delete a task.
-     *
-     * @param Task $task
-     * @return void
-     */
     public function delete(Task $task): void
     {
         $task->delete();
     }
 
     /**
-     * Reorder tasks based on an array of task IDs.
-     *
-     * @param array $priorities
-     * @return void
+     * Put the given tasks into $status, positioned by their index in $taskIds.
      */
-    public function reorderTasks(array $priorities): void
+    public function reorder(string $status, array $taskIds): void
     {
-        foreach ($priorities as $index => $taskId) {
-            Task::where('id', $taskId)->update(['priority' => $index + 1]);
+        foreach (array_values($taskIds) as $position => $taskId) {
+            $this->query()->whereKey($taskId)->update([
+                'status' => $status,
+                'position' => $position,
+            ]);
         }
+    }
+
+    private function query(): Builder
+    {
+        return Task::query();
     }
 }

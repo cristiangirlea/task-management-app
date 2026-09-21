@@ -2,25 +2,22 @@
 
 namespace Database\Factories;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
 use App\Models\Project;
+use App\Models\Tenant;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Project>
+ * @extends Factory<Project>
  */
 class ProjectFactory extends Factory
 {
     protected $model = Project::class;
 
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
         return [
-            'name' => $this->faker->sentence(3), // Generate a random project name
+            'tenant_id' => Tenant::factory(),
+            'name' => $this->faker->sentence(3),
             'description' => $this->faker->paragraph(),
         ];
     }

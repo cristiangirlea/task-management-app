@@ -26,6 +26,10 @@ return [
         'success' => 'Tenant has been successfully deleted.',
         'error' => 'Failed to delete the tenant.',
     ],
+    'show' => [
+        'success' => 'Tenant retrieved successfully.',
+        'error' => 'Failed to retrieve the tenant.',
+    ],
     'not_found' => [
         'single' => 'Tenant not found.',
         'multiple' => 'No tenants found.',

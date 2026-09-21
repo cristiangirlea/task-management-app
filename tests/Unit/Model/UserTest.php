@@ -2,11 +2,11 @@
 
 namespace Tests\Unit\Models;
 
-use App\Models\User;
-use App\Models\Task;
 use App\Models\Project;
+use App\Models\Task;
+use App\Models\Tenant;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Sanctum\PersonalAccessToken;
 use Tests\TestCase;
 
 class UserTest extends TestCase
@@ -19,22 +19,22 @@ class UserTest extends TestCase
     public function test_user_has_many_tasks()
     {
         $user = User::factory()->create();
-        Task::factory()->count(3)->create(['user_id' => $user->id]);
+        $project = Project::factory()->create(['tenant_id' => $user->tenant_id]);
+        Task::factory()->count(3)->create(['user_id' => $user->id, 'project_id' => $project->id]);
 
         $this->assertCount(3, $user->tasks);
         $this->assertInstanceOf(Task::class, $user->tasks->first());
     }
 
     /**
-     * Test that a user has many projects.
+     * Test that a user belongs to a tenant.
      */
-    public function test_user_has_many_projects()
+    public function test_user_belongs_to_a_tenant()
     {
         $user = User::factory()->create();
-        Project::factory()->count(2)->create(['user_id' => $user->id]);
 
-        $this->assertCount(2, $user->projects);
-        $this->assertInstanceOf(Project::class, $user->projects->first());
+        $this->assertInstanceOf(Tenant::class, $user->tenant);
+        $this->assertEquals($user->tenant_id, $user->tenant->id);
     }
 
     /**

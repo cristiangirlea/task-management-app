@@ -4,63 +4,48 @@ namespace App\Services;
 
 use App\Models\Tenant;
 use App\Repositories\TenantRepository;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class TenantService
 {
-    protected TenantRepository $tenantRepository;
+    public function __construct(protected TenantRepository $tenantRepository) {}
 
-    public function __construct(TenantRepository $tenantRepository)
-    {
-        $this->tenantRepository = $tenantRepository;
-    }
-
-    /**
-     * Get all tenants.
-     */
-    public function getAllTenants(): \Illuminate\Database\Eloquent\Collection
+    public function getAllTenants(): Collection
     {
         return $this->tenantRepository->getAll();
     }
 
     /**
-     * Find a tenant by ID.
-     * Throws ModelNotFoundException if tenant does not exist.
+     * @throws ModelNotFoundException
      */
     public function findTenantById(int $id): Tenant
     {
         try {
             return $this->tenantRepository->findById($id);
-        } catch (ModelNotFoundException $e) {
+        } catch (ModelNotFoundException) {
             throw new ModelNotFoundException("Tenant not found with ID {$id}");
         }
     }
 
     /**
-     * Create a new tenant.
+     * Create a tenant; the slug is derived from the name when not given.
      */
     public function createTenant(array $data): Tenant
     {
-        // Handle default settings or empty array
-        $data['settings'] = $data['settings'] ?? json_encode([]);
+        $data['slug'] = $data['slug'] ?? Tenant::uniqueSlug($data['name']);
+        $data['settings'] = $data['settings'] ?? [];
 
         return $this->tenantRepository->create($data);
     }
 
-    /**
-     * Update an existing tenant.
-     */
     public function updateTenant(Tenant $tenant, array $data): Tenant
     {
-        // Optionally handle data like settings, etc.
         $data['settings'] = $data['settings'] ?? $tenant->settings;
 
         return $this->tenantRepository->update($tenant, $data);
     }
 
-    /**
-     * Delete a tenant.
-     */
     public function deleteTenant(Tenant $tenant): void
     {
         $this->tenantRepository->delete($tenant);

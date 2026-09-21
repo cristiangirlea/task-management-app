@@ -2,9 +2,9 @@
 
 namespace Tests\Unit\Models;
 
+use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
-use App\Models\Project;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -41,17 +41,22 @@ class TaskTest extends TestCase
      */
     public function test_task_fillable_attributes()
     {
+        $project = Project::factory()->create();
+        $user = User::factory()->create(['tenant_id' => $project->tenant_id]);
+
         $data = [
             'title' => 'Test Task',
             'description' => 'Test Description',
             'status' => 'pending',
             'priority' => 3,
             'due_date' => now()->addDays(1),
-            'project_id' => 1,
-            'user_id' => 1,
+            'project_id' => $project->id,
+            'user_id' => $user->id,
         ];
 
         $task = Task::create($data);
+
+        $this->assertEquals($project->tenant_id, $task->tenant_id, 'Task takes the tenant of its project.');
 
         $this->assertEquals($data['title'], $task->title);
         $this->assertEquals($data['description'], $task->description);
@@ -66,9 +71,13 @@ class TaskTest extends TestCase
      */
     public function test_task_is_overdue_method()
     {
-        $task = Task::factory()->create(['due_date' => now()->subDay()]); // Past date
+        $task = Task::factory()->pending()->create(['due_date' => now()->subDay()]); // Past date
 
         $this->assertTrue($task->isOverdue(), 'Task should be overdue.');
+
+        $task = Task::factory()->completed()->create(['due_date' => now()->subDay()]);
+
+        $this->assertFalse($task->isOverdue(), 'Completed tasks are never overdue.');
 
         $task = Task::factory()->create(['due_date' => now()->addDay()]); // Future date
 

@@ -14,48 +14,37 @@ class UpdateTenantRequest extends FormRequest
 
     public function rules(): array
     {
+        $tenantId = $this->user()->tenant_id;
+
         return [
-            'name' => 'sometimes|string|max:255',
+            'name' => 'sometimes|required|string|max:255',
             'slug' => [
                 'sometimes',
+                'required',
                 'string',
                 'max:255',
-                Rule::unique('tenants', 'slug')->ignore($this->tenant),
+                'alpha_dash',
+                Rule::unique('tenants', 'slug')->ignore($tenantId),
             ],
             'domain' => [
-                'sometimes',
+                'nullable',
                 'string',
                 'max:255',
-                Rule::unique('tenants', 'domain')->ignore($this->tenant),
+                Rule::unique('tenants', 'domain')->ignore($tenantId),
             ],
-            'settings' => 'nullable|json',
+            'settings' => 'nullable|array',
         ];
     }
 
     public function messages(): array
     {
         return [
-            // Name
             'name.max' => 'The name field must not be greater than 255 characters.',
-
-            // Slug
             'slug.max' => 'The slug must not be greater than 255 characters.',
             'slug.unique' => 'The slug has already been taken.',
-
-            // Domain
             'domain.max' => 'The domain must not be greater than 255 characters.',
             'domain.unique' => 'The domain has already been taken.',
-
-            // Settings
-            'settings.json' => 'The settings field must be a valid JSON string.',
+            'settings.array' => 'The settings field must be an object.',
         ];
-    }
-
-    /**
-     * Get the tenant model from the route.
-     */
-    public function tenant(): \App\Models\Tenant
-    {
-        return $this->route('tenant');
     }
 }

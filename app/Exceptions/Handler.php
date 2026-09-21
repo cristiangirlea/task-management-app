@@ -2,32 +2,29 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
-use Illuminate\Auth\AuthenticationException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\HttpKernel\Exception\HttpException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
-
-use Illuminate\Support\Facades\Log;
 
 class Handler extends ExceptionHandler
 {
     public function render($request, Throwable $exception)
     {
-        if ($request->expectsJson() || $request->is('api/*')) {
-            Log::info('API exception rendering started');
+        if ($request->expectsJson() || $request->is('api/*') || $request->is('mcp/*')) {
             return $this->handleApiException($exception);
         }
 
         return $this->handleWebException($exception);
     }
 
-    protected function handleApiException(Throwable $exception): \Illuminate\Http\JsonResponse
+    protected function handleApiException(Throwable $exception): JsonResponse
     {
-        Log::info('Handling API exception: ' . get_class($exception));
-
         if ($exception instanceof ValidationException) {
             return response()->json([
                 'status' => 'error',
@@ -64,23 +61,26 @@ class Handler extends ExceptionHandler
             ], $exception->getStatusCode());
         }
 
-        return response()->json([
+        $payload = [
             'status' => 'error',
             'message' => 'An unexpected error occurred.',
-            'error' => $exception->getMessage(),
-        ], 500);
+        ];
+
+        if (config('app.debug')) {
+            $payload['error'] = $exception->getMessage();
+        }
+
+        return response()->json($payload, 500);
     }
 
-    protected function handleWebException(Throwable $exception): \Symfony\Component\HttpFoundation\Response
+    protected function handleWebException(Throwable $exception): Response
     {
-        Log::info('Handling Web exception: ' . get_class($exception));
-
         if ($exception instanceof NotFoundHttpException) {
             return response()->view('errors.404', [], 404);
         }
 
         if ($exception instanceof HttpException) {
-            return response()->view('errors.' . $exception->getStatusCode(), ['exception' => $exception], $exception->getStatusCode());
+            return response()->view('errors.'.$exception->getStatusCode(), ['exception' => $exception], $exception->getStatusCode());
         }
 
         return response()->view('errors.500', ['exception' => $exception], 500);

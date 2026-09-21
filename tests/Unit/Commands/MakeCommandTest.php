@@ -8,8 +8,11 @@ use Tests\TestCase;
 abstract class MakeCommandTest extends TestCase
 {
     protected array $createdFiles = [];
+
     private ?string $customPath = null;
+
     private ?string $commandName = null;
+
     private ?string $namespace = null;
 
     /**
@@ -55,8 +58,8 @@ abstract class MakeCommandTest extends TestCase
     protected function getFilePath(string $className): string
     {
         return app_path(
-            trim(str_replace('/', DIRECTORY_SEPARATOR, $this->getPath()), DIRECTORY_SEPARATOR) .
-            DIRECTORY_SEPARATOR .
+            trim(str_replace('/', DIRECTORY_SEPARATOR, $this->getPath()), DIRECTORY_SEPARATOR).
+            DIRECTORY_SEPARATOR.
             "{$className}.php"
         );
     }
@@ -107,7 +110,7 @@ abstract class MakeCommandTest extends TestCase
         $this->assertFileExists($filePath, "The file {$filePath} was not created on the first attempt.");
 
         // Track for cleanup
-        if (!in_array($filePath, $this->createdFiles)) {
+        if (! in_array($filePath, $this->createdFiles)) {
             $this->createdFiles[] = $filePath;
         }
 

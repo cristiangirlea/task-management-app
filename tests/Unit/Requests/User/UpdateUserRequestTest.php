@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Requests\User;
 
+use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use Tests\TestCase;
 
@@ -33,7 +34,7 @@ class UpdateUserRequestTest extends TestCase
         $existingEmail = 'existing@example.com';
 
         // Simulate an existing user
-        \App\Models\User::factory()->create(['email' => $existingEmail]);
+        User::factory()->create(['email' => $existingEmail]);
 
         $data = [
             'email' => $existingEmail,

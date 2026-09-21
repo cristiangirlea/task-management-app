@@ -3,9 +3,10 @@
 namespace Tests\Unit\Services;
 
 use App\Models\Tenant;
+use App\Services\TenantService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
-use App\Services\TenantService;
 
 class TenantServiceTest extends TestCase
 {
@@ -21,7 +22,7 @@ class TenantServiceTest extends TestCase
         $this->tenantService = app(TenantService::class);
     }
 
-    public function testGetAllTenants()
+    public function test_get_all_tenants()
     {
         // Arrange: Create a few tenants in the database
         Tenant::factory()->count(3)->create();
@@ -33,7 +34,7 @@ class TenantServiceTest extends TestCase
         $this->assertCount(3, $tenants);
     }
 
-    public function testFindTenantById_Successful()
+    public function test_find_tenant_by_id_successful()
     {
         // Arrange: Create a tenant
         $tenant = Tenant::factory()->create();
@@ -46,16 +47,16 @@ class TenantServiceTest extends TestCase
         $this->assertEquals($tenant->name, $result->name);
     }
 
-    public function testFindTenantById_NotFound()
+    public function test_find_tenant_by_id_not_found()
     {
         // Act & Assert: Try to fetch a non-existent tenant
         $nonExistentId = 999;
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
 
         $this->tenantService->findTenantById($nonExistentId);
     }
 
-    public function testCreateTenant()
+    public function test_create_tenant()
     {
         // Arrange: Define the tenant data, including the slug
         $data = [
@@ -75,7 +76,7 @@ class TenantServiceTest extends TestCase
         ]);
     }
 
-    public function testUpdateTenant()
+    public function test_update_tenant()
     {
         // Arrange: Create a tenant and prepare updated data
         $tenant = Tenant::factory()->create();
@@ -92,7 +93,7 @@ class TenantServiceTest extends TestCase
         ]);
     }
 
-    public function testDeleteTenant()
+    public function test_delete_tenant()
     {
         // Arrange: Create a tenant
         $tenant = Tenant::factory()->create();

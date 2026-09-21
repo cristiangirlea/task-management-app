@@ -9,8 +9,6 @@ class TenantRepository
 {
     /**
      * Get all tenants.
-     *
-     * @return Collection
      */
     public function getAll(): Collection
     {
@@ -19,9 +17,6 @@ class TenantRepository
 
     /**
      * Find a tenant by ID.
-     *
-     * @param int $id
-     * @return Tenant
      */
     public function findById(int $id): Tenant
     {
@@ -30,9 +25,6 @@ class TenantRepository
 
     /**
      * Find a tenant by its slug.
-     *
-     * @param string $slug
-     * @return Tenant
      */
     public function findBySlug(string $slug): Tenant
     {
@@ -41,9 +33,6 @@ class TenantRepository
 
     /**
      * Create a new tenant.
-     *
-     * @param array $data
-     * @return Tenant
      */
     public function create(array $data): Tenant
     {
@@ -57,10 +46,6 @@ class TenantRepository
 
     /**
      * Update an existing tenant.
-     *
-     * @param Tenant $tenant
-     * @param array $data
-     * @return Tenant
      */
     public function update(Tenant $tenant, array $data): Tenant
     {
@@ -70,14 +55,12 @@ class TenantRepository
             'domain' => $data['domain'] ?? $tenant->domain,
             'settings' => $data['settings'] ?? $tenant->settings,
         ]);
+
         return $tenant;
     }
 
     /**
      * Delete a tenant.
-     *
-     * @param Tenant $tenant
-     * @return void
      */
     public function delete(Tenant $tenant): void
     {

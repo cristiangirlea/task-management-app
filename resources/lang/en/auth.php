@@ -5,6 +5,9 @@ return [
         'success' => 'Logged in successfully.',
         'error' => 'Invalid credentials. Please try again.',
     ],
+    'register' => [
+        'success' => 'Registered successfully.',
+    ],
     'logout' => [
         'success' => 'You have successfully logged out.',
     ],

@@ -2,78 +2,101 @@
 
 namespace App\Services;
 
+use App\Models\Task;
 use App\Repositories\TaskRepository;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 class TaskService
 {
-    protected TaskRepository $taskRepository;
-
-    public function __construct(TaskRepository $taskRepository)
-    {
-        $this->taskRepository = $taskRepository;
-    }
+    public function __construct(protected TaskRepository $taskRepository) {}
 
     /**
-     * Get tasks by project ID.
-     *
-     * @param int $projectId
-     * @return \Illuminate\Database\Eloquent\Collection
+     * @param  array{project_id?: int|null, status?: string|null}  $filters
      */
-    public function getTasksByProject(int $projectId)
+    public function listTasks(array $filters = []): Collection
+    {
+        return $this->taskRepository->list($filters);
+    }
+
+    public function getTasksByProject(int $projectId): Collection
     {
         return $this->taskRepository->getTasksByProject($projectId);
     }
 
     /**
-     * Create a new task.
-     *
-     * @param array $data
-     * @return \App\Models\Task
+     * Create a task at the bottom of its Kanban column.
      */
-    public function createTask(array $data)
+    public function createTask(array $data): Task
     {
-        $maxPriority = $this->taskRepository->getMaxPriorityByProject($data['project_id']);
-        $data['priority'] = $maxPriority + 1;
+        $data['status'] = $data['status'] ?? Task::STATUS_PENDING;
+        $data['position'] = $this->taskRepository->nextPosition((int) $data['project_id'], $data['status']);
 
         return $this->taskRepository->create($data);
     }
 
     /**
-     * Update an existing task.
-     *
-     * @param int $taskId
-     * @param array $data
-     * @return \App\Models\Task
+     * Update a task. When it changes column (status) or project without an
+     * explicit position, it goes to the bottom of the destination column.
      */
-    public function updateTask(int $taskId, array $data)
+    public function updateTask(Task $task, array $data): Task
     {
-        $task = $this->taskRepository->find($taskId);
+        $status = $data['status'] ?? $task->status;
+        $projectId = (int) ($data['project_id'] ?? $task->project_id);
+        $movedColumn = $status !== $task->status || $projectId !== $task->project_id;
+
+        if ($movedColumn && ! array_key_exists('position', $data)) {
+            $data['position'] = $this->taskRepository->nextPosition($projectId, $status);
+        }
+
         return $this->taskRepository->update($task, $data);
     }
 
-    /**
-     * Delete a task.
-     *
-     * @param int $taskId
-     * @return void
-     */
-    public function deleteTask(int $taskId): void
+    public function deleteTask(Task $task): void
     {
-        $task = $this->taskRepository->find($taskId);
         $this->taskRepository->delete($task);
     }
 
     /**
-     * Reorder tasks based on an array of task IDs.
-     *
-     * @param array $priorities
-     * @return void
+     * Move one task to a column at a given index (bottom when null),
+     * renumbering both the destination and the source column.
      */
-    public function reorderTasks(array $priorities): void
+    public function moveTask(Task $task, string $status, ?int $position = null): Task
     {
-        DB::transaction(function () use ($priorities) {
-            $this->taskRepository->reorderTasks($priorities);
+        DB::transaction(function () use ($task, $status, $position) {
+            $destination = $this->taskRepository
+                ->list(['project_id' => $task->project_id, 'status' => $status])
+                ->reject(fn (Task $other) => $other->is($task))
+                ->pluck('id')
+                ->values()
+                ->all();
+
+            $index = $position === null ? count($destination) : max(0, min($position, count($destination)));
+            array_splice($destination, $index, 0, [$task->id]);
+            $this->taskRepository->reorder($status, $destination);
+
+            if ($status !== $task->status) {
+                $source = $this->taskRepository
+                    ->list(['project_id' => $task->project_id, 'status' => $task->status])
+                    ->reject(fn (Task $other) => $other->is($task))
+                    ->pluck('id')
+                    ->all();
+                $this->taskRepository->reorder($task->status, $source);
+            }
         });
+
+        return $task->refresh();
+    }
+
+    /**
+     * Move the listed tasks into $status in the given order and return them.
+     */
+    public function reorderTasks(string $status, array $taskIds): Collection
+    {
+        DB::transaction(function () use ($status, $taskIds) {
+            $this->taskRepository->reorder($status, $taskIds);
+        });
+
+        return $this->taskRepository->findMany($taskIds);
     }
 }

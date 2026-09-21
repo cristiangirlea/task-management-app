@@ -2,54 +2,42 @@
 
 namespace App\Helpers;
 
+use Illuminate\Contracts\Pagination\Paginator;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Collection;
 
 class ResponseManager
 {
     /**
-     * Build an API success response.
-     *
-     * @param string|null $resourceClass
-     * @param mixed|null $data
-     * @param string|null $message
-     * @param int $status
-     * @return JsonResponse
+     * Build an API success response, wrapping $data in $resourceClass when given.
+     * Collections and paginators are wrapped as resource collections, anything
+     * else as a single resource.
      */
     public static function apiSuccess(
         ?string $resourceClass,
-                $data = null,
+        mixed $data = null,
         ?string $message = null,
         int $status = 200
     ): JsonResponse {
-        $resource = $resourceClass && $data
-            ? ResourceHelper::item($resourceClass, $data)
-            : $data;
+        if ($resourceClass !== null && $data !== null) {
+            $data = ($data instanceof Collection || $data instanceof Paginator)
+                ? ResourceHelper::collection($resourceClass, $data)
+                : ResourceHelper::item($resourceClass, $data);
+        }
 
-        return ResponseHelper::success($resource, $message, $status);
+        return ResponseHelper::success($data, $message, $status);
     }
 
-    /**
-     * Build an API error response.
-     *
-     * @param string $message
-     * @param int $status
-     * @param mixed|null $data
-     * @return JsonResponse
-     */
-    public static function apiError(string $message, int $status = 400, $data = null): JsonResponse
+    public static function apiError(string $message, int $status = 400, mixed $data = null): JsonResponse
     {
         return ResponseHelper::error($message, $status, $data);
     }
 
     /**
-     * Build a view response.
+     * Build a view response with an optional flash message.
      *
-     * @param string $view
-     * @param array|null $data
-     * @param string|null $flashMessage
-     * @param string $flashType
-     * @return \Illuminate\Contracts\View\View
+     * @return View
      */
     public static function viewResponse(
         string $view,

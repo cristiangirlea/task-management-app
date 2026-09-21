@@ -28,5 +28,5 @@ return [
         ],
         'http_error' => 'An HTTP error occurred while processing the request.',
         'general_error' => 'An error occurred, please try again.',
-    ]
+    ],
 ];

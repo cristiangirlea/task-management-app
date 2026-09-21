@@ -26,6 +26,10 @@ return [
         'success' => 'Le locataire a été supprimé avec succès.',
         'error' => 'Échec de la suppression du locataire.',
     ],
+    'show' => [
+        'success' => 'Locataire récupéré avec succès.',
+        'error' => 'Échec de la récupération du locataire.',
+    ],
     'not_found' => [
         'single' => 'Locataire non trouvé.',
         'multiple' => 'Aucun locataire trouvé.',
