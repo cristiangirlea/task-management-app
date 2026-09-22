@@ -44,7 +44,7 @@ class McpHttpTest extends TestCase
         $names = collect($response->json('result.tools'))->pluck('name')->all();
 
         $this->assertEqualsCanonicalizing(
-            ['list_projects', 'create_project', 'list_members', 'list_tasks', 'create_task', 'update_task', 'move_task', 'delete_task'],
+            ['workspace_overview', 'list_projects', 'create_project', 'list_members', 'list_tasks', 'create_task', 'update_task', 'move_task', 'delete_task'],
             $names
         );
     }

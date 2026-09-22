@@ -11,6 +11,7 @@ use App\Mcp\Tools\ListProjects;
 use App\Mcp\Tools\ListTasks;
 use App\Mcp\Tools\MoveTask;
 use App\Mcp\Tools\UpdateTask;
+use App\Mcp\Tools\WorkspaceOverview;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
@@ -38,6 +39,7 @@ class TaskBoardServerTest extends TestCase
     public function test_registers_the_board_tools(): void
     {
         TaskBoardServer::tools()->assertRegistered([
+            WorkspaceOverview::class,
             ListProjects::class,
             CreateProject::class,
             ListMembers::class,

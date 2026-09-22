@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -89,6 +90,43 @@ class Task extends Model
     public function scopeForProject(Builder $query, int $projectId): Builder
     {
         return $query->where('project_id', $projectId);
+    }
+
+    /**
+     * Past its due date and not finished. Mirrors isOverdue().
+     */
+    public function scopeOverdue(Builder $query): Builder
+    {
+        return $query->whereNotNull('due_date')
+            ->where('due_date', '<', now())
+            ->where('status', '!=', self::STATUS_COMPLETED);
+    }
+
+    public function scopeAssignedTo(Builder $query, int $userId): Builder
+    {
+        return $query->where('user_id', $userId);
+    }
+
+    public function scopeDueBefore(Builder $query, CarbonInterface|string $date): Builder
+    {
+        return $query->whereNotNull('due_date')->where('due_date', '<', $date);
+    }
+
+    /**
+     * Free-text match on title or description.
+     *
+     * Wildcards in the term are escaped so that searching for "100%" finds
+     * that literal string rather than everything. The ESCAPE clause is
+     * explicit because SQLite, unlike MySQL and Postgres, assigns no meaning
+     * to a backslash in LIKE unless told to.
+     */
+    public function scopeMatching(Builder $query, string $term): Builder
+    {
+        $like = '%'.addcslashes($term, '%_\\').'%';
+
+        return $query->where(fn (Builder $inner) => $inner
+            ->whereRaw('title LIKE ? ESCAPE ?', [$like, '\\'])
+            ->orWhereRaw('description LIKE ? ESCAPE ?', [$like, '\\']));
     }
 
     public function isOverdue(): bool

@@ -58,6 +58,34 @@ class TaskApiTest extends TestCase
             ->assertJsonPath('data.0.id', $done->id);
     }
 
+    public function test_the_list_can_be_filtered_the_way_a_client_would_ask(): void
+    {
+        $colleague = User::factory()->member()->create(['tenant_id' => $this->user->tenant_id]);
+        $late = $this->task(['title' => 'Late invoice', 'due_date' => now()->subWeek(), 'status' => 'pending']);
+        $mine = $this->task(['title' => 'Mine', 'user_id' => $this->user->id]);
+        $this->task(['title' => 'Theirs', 'user_id' => $colleague->id]);
+        $this->task(['title' => 'Nothing special']);
+
+        $this->getJson('/api/tasks?overdue=1')
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $late->id);
+
+        // A query string carries words, not booleans: "false" must mean off,
+        // and nonsense must still be refused.
+        $this->getJson('/api/tasks?overdue=false')->assertOk()->assertJsonCount(4, 'data');
+        $this->getJson('/api/tasks?overdue=true')->assertOk()->assertJsonCount(1, 'data');
+        $this->getJson('/api/tasks?overdue=maybe')->assertUnprocessable()->assertJsonValidationErrors(['overdue']);
+
+        $this->getJson("/api/tasks?assigned_to={$this->user->id}")
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $mine->id);
+
+        $this->getJson('/api/tasks?search=invoice')
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $late->id);
+
+        $this->getJson('/api/tasks?limit=2')->assertOk()->assertJsonCount(2, 'data');
+
+        $this->getJson('/api/tasks?limit=0')->assertUnprocessable()->assertJsonValidationErrors(['limit']);
+    }
+
     public function test_cannot_list_tasks_of_another_tenants_project(): void
     {
         $foreign = Project::factory()->create();

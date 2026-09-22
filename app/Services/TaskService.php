@@ -12,11 +12,21 @@ class TaskService
     public function __construct(protected TaskRepository $taskRepository) {}
 
     /**
-     * @param  array{project_id?: int|null, status?: string|null}  $filters
+     * @param  array<string, mixed>  $filters
      */
     public function listTasks(array $filters = []): Collection
     {
         return $this->taskRepository->list($filters);
+    }
+
+    /**
+     * Total matches, ignoring any limit.
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    public function countTasks(array $filters = []): int
+    {
+        return $this->taskRepository->countMatching($filters);
     }
 
     public function getTasksByProject(int $projectId): Collection

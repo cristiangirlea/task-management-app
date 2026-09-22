@@ -104,7 +104,7 @@ All responses use one envelope:
 | DELETE | `/api/tokens/{id}` | | revoke |
 | GET / POST | `/api/projects` | `name, description?` | `tasks_count` included |
 | GET / PUT / DELETE | `/api/projects/{id}` | `name?, description?` | |
-| GET | `/api/tasks` | `?project_id=&status=` | ordered by `position` |
+| GET | `/api/tasks` | `?project_id=&status=&assigned_to=&overdue=&due_before=&search=&limit=` | ordered by `position`; omitting `limit` returns every match |
 | POST | `/api/tasks` | `title, project_id, description?, status?, priority?, due_date?, user_id?` | new tasks go to the bottom of their column |
 | GET / PUT / DELETE | `/api/tasks/{id}` | any task field | changing `status` moves the task to the bottom of the new column |
 | POST | `/api/tasks/reorder` | `status, task_ids[]` | puts the listed tasks in `status`, positioned by array index |
@@ -123,7 +123,8 @@ as one user inside one workspace and sees exactly what that user sees.
 | `list_projects` | Projects in the workspace with task counts |
 | `create_project` | Create a project |
 | `list_members` | People in the workspace, for assigning tasks |
-| `list_tasks` | Tasks, filterable by `project_id` and `status`, in board order |
+| `workspace_overview` | One-call summary: every project with per-column and overdue counts |
+| `list_tasks` | Tasks, filtered by project, status, assignee, overdue, due date or free text; bounded, and reports how many matched |
 | `create_task` | Create a task at the bottom of a column |
 | `update_task` | Change title, description, priority, due date, assignee, status or project |
 | `move_task` | Drag a task to a column and position, renumbering both columns |
@@ -140,7 +141,10 @@ Connect a client:
    ```
 
    Any MCP client that supports Streamable HTTP with custom headers works the same way.
-3. Ask the agent things like "what is overdue in the Launch project?" or "move task 12 to in progress, top of the column".
+3. Ask the agent things like "what is overdue?", "what is assigned to me?", "find the invoicing work" or
+   "move task 12 to in progress, top of the column". `list_tasks` answers each of those in a single filtered
+   call and caps what it returns, so a large workspace does not flood the agent's context; when a result is
+   truncated the reply says how many matched so the agent can narrow it.
 
 The server is intentionally **not** registered as a local stdio server: without an authenticated
 user there is no tenant to scope to. Clients that require OAuth instead of a static token can be
@@ -196,5 +200,5 @@ resources/lang         en / fr messages
 - Workspace switching (one workspace per account today)
 - Two-factor authentication
 - Real-time board updates (Laravel Reverb)
-- Pagination on list endpoints
+- Cursor pagination on the REST list endpoints (today they take a `limit`)
 - OAuth (Passport) for MCP clients that cannot send a static bearer token

@@ -19,7 +19,7 @@ class TaskController extends ApiBaseController
     {
         $this->authorize('viewAny', Task::class);
 
-        $tasks = $this->taskService->listTasks($request->validated());
+        $tasks = $this->taskService->listTasks($request->filters());
 
         return $this->respondApiSuccess(TaskResource::class, $tasks, 'Tasks retrieved successfully');
     }
