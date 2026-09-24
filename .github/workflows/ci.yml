@@ -92,7 +92,7 @@ jobs:
               -e SCRIPT_FILENAME=/var/www/html/public/index.php -e HTTP_ACCEPT=application/json \
               api cgi-fcgi -bind -connect 127.0.0.1:9000
           }
-          fcgi GET /up | grep -q '200 OK\|Status: 200\|Application up' || { fcgi GET /up; exit 1; }
+          fcgi GET /up | grep -q '"status":"up"' || { fcgi GET /up; exit 1; }
           fcgi GET /api/billing | grep -q 'Unauthenticated' || { fcgi GET /api/billing; exit 1; }
           fcgi POST /api/stripe/webhook | grep -q 'Status: 403' || { fcgi POST /api/stripe/webhook; exit 1; }
           docker exec api php artisan migrate:status | grep -q create_subscriptions_table
