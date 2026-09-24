@@ -67,7 +67,8 @@ jobs:
         run: |
           docker network create ci
           docker run -d --name db --network ci -e POSTGRES_PASSWORD=secret -e POSTGRES_DB=app postgres:16-alpine
-          for i in $(seq 1 30); do docker exec db pg_isready -U postgres -d app && break; sleep 1; done
+          # Over TCP: while initialising, the image briefly runs a socket-only server.
+          for i in $(seq 1 30); do docker exec db pg_isready -h 127.0.0.1 -U postgres -d app && break; sleep 1; done
 
           docker run -d --name api --network ci \
             -e APP_ENV=production -e APP_DEBUG=false -e APP_KEY="base64:$(openssl rand -base64 32)" \
