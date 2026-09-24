@@ -45,7 +45,12 @@ class BillingService
      */
     public function seatsReserved(Tenant $tenant): int
     {
-        return $this->seatsUsed($tenant) + $tenant->invitations()
+        return $this->seatsUsed($tenant) + $this->pendingInvitations($tenant);
+    }
+
+    public function pendingInvitations(Tenant $tenant): int
+    {
+        return $tenant->invitations()
             ->withoutGlobalScope(TenantScope::class)
             ->pending()
             ->count();
@@ -101,6 +106,8 @@ class BillingService
             'status' => $this->status($tenant),
             'seats' => [
                 'used' => $this->seatsUsed($tenant),
+                // Held by invitations not yet accepted; they count toward the free limit.
+                'pending' => $this->pendingInvitations($tenant),
                 'limit' => $this->seatLimit($tenant),
             ],
             'free_seats' => (int) config('billing.free_seats'),

@@ -26,7 +26,7 @@ class BillingTest extends TestCase
                 'data' => [
                     'plan' => 'free',
                     'status' => 'none',
-                    'seats' => ['used' => 1, 'limit' => 3],
+                    'seats' => ['used' => 1, 'pending' => 0, 'limit' => 3],
                     'free_seats' => 3,
                     'seat_price_cents' => 800,
                     'currency' => 'usd',
@@ -35,6 +35,15 @@ class BillingTest extends TestCase
                     'can_manage' => true,
                 ],
             ]);
+    }
+
+    public function test_pending_invitations_are_reported_beside_members(): void
+    {
+        $owner = $this->actingAsTenantUser();
+        Invitation::factory()->create(['tenant_id' => $owner->tenant_id, 'invited_by' => $owner->id]);
+        Invitation::factory()->expired()->create(['tenant_id' => $owner->tenant_id, 'invited_by' => $owner->id]);
+
+        $this->getJson('/api/billing')->assertJsonPath('data.seats', ['used' => 1, 'pending' => 1, 'limit' => 3]);
     }
 
     public function test_an_active_subscription_is_the_team_plan_without_a_seat_limit(): void
@@ -46,7 +55,7 @@ class BillingTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.plan', 'team')
             ->assertJsonPath('data.status', 'active')
-            ->assertJsonPath('data.seats', ['used' => 1, 'limit' => null]);
+            ->assertJsonPath('data.seats', ['used' => 1, 'pending' => 0, 'limit' => null]);
     }
 
     public function test_a_cancelled_subscription_stays_team_until_the_paid_period_ends(): void

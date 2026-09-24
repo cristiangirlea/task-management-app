@@ -157,7 +157,7 @@ class TenantIsolationTest extends TestCase
         $this->getJson('/api/billing')
             ->assertOk()
             ->assertJsonPath('data.plan', 'free')
-            ->assertJsonPath('data.seats', ['used' => 1, 'limit' => 3]);
+            ->assertJsonPath('data.seats', ['used' => 1, 'pending' => 0, 'limit' => 3]);
         $this->getJson('/api/tenant')->assertJsonPath('data.plan', 'free');
 
         // The victim's Stripe customer cannot be reached through the portal.
