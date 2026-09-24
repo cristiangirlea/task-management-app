@@ -4,8 +4,10 @@ namespace Tests\Feature\Mcp;
 
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Testing\TestResponse;
+use Tests\Concerns\CreatesSubscriptions;
 use Tests\TestCase;
 
 /**
@@ -15,6 +17,8 @@ use Tests\TestCase;
  */
 class AgentQueryTest extends TestCase
 {
+    use CreatesSubscriptions;
+
     private User $user;
 
     private Project $project;
@@ -154,6 +158,8 @@ class AgentQueryTest extends TestCase
         $result = $this->runTool('workspace_overview');
 
         $this->assertSame(2, $result['members']);
+        $this->assertSame('free', $result['plan']);
+        $this->assertSame(['used' => 2, 'limit' => 3], $result['seats']);
         $this->assertSame(2, $result['totals']['projects']);
         $this->assertSame(5, $result['totals']['tasks']);
         $this->assertSame(1, $result['totals']['overdue']);
@@ -180,5 +186,18 @@ class AgentQueryTest extends TestCase
         $this->assertSame(1, $result['totals']['tasks']);
         $this->assertSame(1, $result['totals']['projects']);
         $this->assertStringNotContainsString('Someone elses', json_encode($result));
+    }
+
+    public function test_the_overview_reports_the_callers_plan(): void
+    {
+        $this->subscribe(Tenant::factory()->create());
+        $this->assertSame('free', $this->runTool('workspace_overview')['plan']);
+
+        $this->subscribe($this->user->tenant);
+        app('auth')->forgetGuards();
+        $result = $this->runTool('workspace_overview');
+
+        $this->assertSame('team', $result['plan']);
+        $this->assertSame(['used' => 1, 'limit' => null], $result['seats']);
     }
 }

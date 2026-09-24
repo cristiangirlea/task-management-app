@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\MemberResource;
 use App\Models\User;
+use App\Services\BillingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -12,6 +13,8 @@ use Illuminate\Http\Request;
  */
 class MemberController extends ApiBaseController
 {
+    public function __construct(protected BillingService $billing) {}
+
     public function index(Request $request): JsonResponse
     {
         $tenant = $request->user()->tenant;
@@ -43,6 +46,8 @@ class MemberController extends ApiBaseController
 
         $member->tokens()->delete();
         $member->delete();
+
+        $this->billing->syncSeats($tenant);
 
         return $this->respondApiSuccess(null, null, __('member.destroy.success'), 204);
     }

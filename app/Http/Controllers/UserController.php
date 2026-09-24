@@ -8,6 +8,7 @@ use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\BillingService;
 use App\Services\TenantService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
@@ -18,7 +19,10 @@ use Laravel\Sanctum\PersonalAccessToken;
 
 class UserController extends ApiBaseController
 {
-    public function __construct(protected TenantService $tenantService) {}
+    public function __construct(
+        protected TenantService $tenantService,
+        protected BillingService $billing,
+    ) {}
 
     /**
      * Register a user together with a fresh workspace (tenant).
@@ -82,8 +86,13 @@ class UserController extends ApiBaseController
     public function deleteUser(Request $request): JsonResponse
     {
         $user = $request->user();
+        $tenant = $user->tenant;
         $user->tokens()->delete();
         $user->delete();
+
+        if ($tenant !== null) {
+            $this->billing->syncSeats($tenant);
+        }
 
         return $this->respondApiSuccess(null, null, 'User deleted successfully', 204);
     }

@@ -19,10 +19,11 @@ Claude / other MCP clients ─────────────────�
 - Password reset, email verification, and throttling on every unauthenticated endpoint
 - Consistent JSON envelope and localized messages (English, French)
 - MCP server so agents can list, create, update and move tasks on a user's behalf
+- Per-seat billing with Stripe (Laravel Cashier): a free tier and a paid Team plan
 
 ## Requirements
 
-- PHP 8.4 with `pdo_pgsql` (or `pdo_sqlite` for local work) and the `redis` extension
+- PHP 8.4 with `pdo_pgsql` (or `pdo_sqlite` for local work), `bcmath` (required by Cashier) and the `redis` extension
 - Composer
 - PostgreSQL 14+ (SQLite works for local development and is used by the test suite)
 
@@ -53,7 +54,13 @@ For the full stack (Postgres, Redis, nginx, frontend) see
 | `REDIS_*` | Cache/queue backend when `CACHE_STORE`/`QUEUE_CONNECTION` are set to `redis` |
 | `CORS_ALLOWED_ORIGINS` | Comma-separated browser origins allowed to call `/api` and `/mcp` (default `*`) |
 | `FRONTEND_URL` | Where the Next.js app lives; invitation links point at `<FRONTEND_URL>/invite/<token>` |
-| `MAIL_*` | Mailer for invitation emails (`log` by default) |
+| `MAIL_*` | Mailer for invitation emails (`log` by default; `resend` with `RESEND_KEY` in production) |
+| `STRIPE_KEY`, `STRIPE_SECRET` | Stripe API keys (test-mode keys locally) |
+| `STRIPE_WEBHOOK_SECRET` | Signing secret of the webhook endpoint; signatures are checked when set |
+| `STRIPE_PRICE_ID` | The Team plan: a recurring, monthly, per-unit Price |
+| `CASHIER_PATH` | `api/stripe`, so the webhook is `POST /api/stripe/webhook` |
+| `BILLING_FREE_SEATS` | Members a free workspace may have (default 3), pending invitations included |
+| `BILLING_SEAT_PRICE_CENTS` | Seat price shown to customers (default 800); Stripe charges what the Price says |
 | `APP_LOCALE` | `en` or `fr` for API messages |
 
 ## Authentication and tenancy
@@ -100,6 +107,10 @@ All responses use one envelope:
 | DELETE | `/api/tenant/invitations/{id}` | | revoke |
 | GET | `/api/invitations/{token}` | | public preview of an invitation |
 | POST | `/api/invitations/{token}/accept` | `name, password, password_confirmation` | public; creates the member and returns `{user, token}` |
+| GET | `/api/billing` | | plan, seats used/limit, status (any member) |
+| POST | `/api/billing/checkout` | | owners; `data.url` is a Stripe Checkout page for the Team plan |
+| POST | `/api/billing/portal` | | owners; `data.url` is the Stripe billing portal (card, invoices, cancel) |
+| POST | `/api/stripe/webhook` | Stripe event | Cashier's webhook, verified by signature |
 | GET / POST | `/api/tokens` | `name` | list tokens / create one (plain-text token returned once) |
 | DELETE | `/api/tokens/{id}` | | revoke |
 | GET / POST | `/api/projects` | `name, description?` | `tasks_count` included |
@@ -153,6 +164,31 @@ supported later through Laravel Passport, which `laravel/mcp` integrates with.
 Implementation: `app/Mcp/Servers/TaskBoardServer.php`, tools in `app/Mcp/Tools`, route in `routes/ai.php`,
 tests in `tests/Feature/Mcp`.
 
+## Billing
+
+The workspace is the paying customer (Laravel Cashier's billable model is `Tenant`).
+
+- **Free**: up to `BILLING_FREE_SEATS` (3) members. Pending invitations hold a seat, so
+  inviting past the limit, or accepting an invitation into a full workspace, returns
+  **402** with a message the frontend shows next to an upgrade link.
+- **Team**: no seat limit, billed per member per month. The Stripe subscription's quantity
+  follows the member count: it is updated when someone joins or leaves, and Stripe's
+  webhook writes the confirmed value back.
+- A cancelled subscription stays Team until the paid period ends. A **past-due** one also
+  stays Team while Stripe retries the card (`Cashier::keepPastDueSubscriptionsActive()`),
+  and `GET /api/billing` reports `has_payment_problem` so the owner can fix it.
+
+Setting it up in Stripe test mode:
+
+1. Create a product with a recurring, monthly, per-unit Price (e.g. $8) and put its id in
+   `STRIPE_PRICE_ID`; add the test keys to `STRIPE_KEY`/`STRIPE_SECRET`.
+2. Forward webhooks locally with the Stripe CLI and copy the printed secret into
+   `STRIPE_WEBHOOK_SECRET`:
+   `stripe listen --forward-to localhost:8000/api/stripe/webhook`.
+   In production, `php artisan cashier:webhook --url=https://<host>/api/stripe/webhook`
+   creates the endpoint with the events Cashier handles.
+3. Upgrade from Settings in the frontend and pay with the test card `4242 4242 4242 4242`.
+
 ## Rate limits
 
 Unauthenticated endpoints are throttled in `AppServiceProvider` to blunt credential
@@ -189,7 +225,8 @@ app/Http/Resources     JSON shapes (shared by the REST API and the MCP tools)
 app/Mcp                MCP server and tools
 app/Models/Concerns    BelongsToTenant trait (global scope + auto tenant_id)
 app/Policies           per-tenant authorization
-app/Services           TaskService (create / update / move / reorder), TenantService
+app/Services           TaskService (create / update / move / reorder), TenantService,
+                       InvitationService, BillingService (plans and seats)
 app/Repositories       query layer
 app/Validation         TaskRules: tenant-aware validation shared by HTTP and MCP
 resources/lang         en / fr messages

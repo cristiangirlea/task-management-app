@@ -2,11 +2,15 @@
 
 namespace App\Providers;
 
+use App\Models\Tenant;
+use App\Services\Billing\SeatSynchronizer;
+use App\Services\Billing\StripeSeatSynchronizer;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Laravel\Cashier\Cashier;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,7 +19,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(SeatSynchronizer::class, StripeSeatSynchronizer::class);
     }
 
     /**
@@ -23,7 +27,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->configureBilling();
         $this->configureRateLimiting();
+    }
+
+    /**
+     * The workspace is the Stripe customer. A past-due subscription keeps its
+     * seats while Stripe retries the card; Cashier's default would drop a
+     * paying team to the free limit on the first failed charge.
+     */
+    protected function configureBilling(): void
+    {
+        Cashier::useCustomerModel(Tenant::class);
+        Cashier::keepPastDueSubscriptionsActive();
     }
 
     /**

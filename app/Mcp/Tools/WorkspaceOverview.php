@@ -4,6 +4,7 @@ namespace App\Mcp\Tools;
 
 use App\Models\Project;
 use App\Models\Task;
+use App\Services\BillingService;
 use Illuminate\Support\Collection;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -15,11 +16,12 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 #[Name('workspace_overview')]
 #[IsReadOnly]
 #[Description('A one-call summary of the workspace: every project with how many tasks sit in each Kanban '
-    .'column and how many are overdue, plus workspace totals. Start here to get your bearings before '
-    .'calling list_tasks, rather than listing every task to count them.')]
+    .'column and how many are overdue, plus workspace totals and the plan (free or team) with its seat '
+    .'limit. Start here to get your bearings before calling list_tasks, rather than listing every task '
+    .'to count them.')]
 class WorkspaceOverview extends Tool
 {
-    public function handle(Request $request): Response
+    public function handle(Request $request, BillingService $billing): Response
     {
         $user = $request->user();
         $tenant = $user->tenant;
@@ -52,6 +54,11 @@ class WorkspaceOverview extends Tool
             'workspace' => $tenant?->name,
             'you' => ['id' => $user->id, 'name' => $user->name, 'role' => $user->role],
             'members' => $tenant?->users()->count() ?? 0,
+            'plan' => $tenant ? $billing->plan($tenant) : null,
+            'seats' => [
+                'used' => $tenant ? $billing->seatsUsed($tenant) : 0,
+                'limit' => $tenant ? $billing->seatLimit($tenant) : 0,
+            ],
             'projects' => $projects->all(),
             'totals' => [
                 'projects' => $projects->count(),

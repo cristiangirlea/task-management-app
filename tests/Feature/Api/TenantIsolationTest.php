@@ -14,6 +14,7 @@ use App\Models\Task;
 use App\Models\Tenant;
 use App\Models\User;
 use Tests\Concerns\ActsAsTenantUser;
+use Tests\Concerns\CreatesSubscriptions;
 use Tests\TestCase;
 
 /**
@@ -24,7 +25,7 @@ use Tests\TestCase;
  */
 class TenantIsolationTest extends TestCase
 {
-    use ActsAsTenantUser;
+    use ActsAsTenantUser, CreatesSubscriptions;
 
     private User $intruder;
 
@@ -147,6 +148,20 @@ class TenantIsolationTest extends TestCase
         $this->putJson('/api/tenant', ['name' => 'Renamed'])->assertOk();
 
         $this->assertDatabaseHas('tenants', ['id' => $this->victimTenant->id, 'name' => 'Victim Workspace']);
+    }
+
+    public function test_the_victims_plan_and_billing_account_are_not_the_intruders(): void
+    {
+        $this->subscribe($this->victimTenant);
+
+        $this->getJson('/api/billing')
+            ->assertOk()
+            ->assertJsonPath('data.plan', 'free')
+            ->assertJsonPath('data.seats', ['used' => 1, 'limit' => 3]);
+        $this->getJson('/api/tenant')->assertJsonPath('data.plan', 'free');
+
+        // The victim's Stripe customer cannot be reached through the portal.
+        $this->postJson('/api/billing/portal')->assertStatus(409);
     }
 
     public function test_the_mcp_tools_obey_the_same_boundary(): void

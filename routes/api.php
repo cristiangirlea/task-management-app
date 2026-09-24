@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\InvitationAcceptController;
 use App\Http\Controllers\InvitationController;
@@ -43,6 +44,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tenant/invitations', [InvitationController::class, 'index'])->name('invitations.index');
     Route::post('/tenant/invitations', [InvitationController::class, 'store'])->name('invitations.store');
     Route::delete('/tenant/invitations/{invitation}', [InvitationController::class, 'destroy'])->name('invitations.destroy');
+
+    // Stripe's webhook is registered by Cashier at POST /api/stripe/webhook (CASHIER_PATH).
+    Route::get('/billing', [BillingController::class, 'show'])->name('billing.show');
+    Route::post('/billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
+    Route::post('/billing/portal', [BillingController::class, 'portal'])->name('billing.portal');
 
     Route::get('/tokens', [TokenController::class, 'index'])->name('tokens.index');
     Route::post('/tokens', [TokenController::class, 'store'])->name('tokens.store');
