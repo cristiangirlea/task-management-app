@@ -107,7 +107,7 @@ All responses use one envelope:
 | DELETE | `/api/tenant/invitations/{id}` | | revoke |
 | GET | `/api/invitations/{token}` | | public preview of an invitation |
 | POST | `/api/invitations/{token}/accept` | `name, password, password_confirmation` | public; creates the member and returns `{user, token}` |
-| GET | `/api/billing` | | plan, seats used/limit, status (any member) |
+| GET | `/api/billing` | | plan, status, seats `{used, pending, limit}` (any member) |
 | POST | `/api/billing/checkout` | | owners; `data.url` is a Stripe Checkout page for the Team plan |
 | POST | `/api/billing/portal` | | owners; `data.url` is the Stripe billing portal (card, invoices, cancel) |
 | POST | `/api/stripe/webhook` | Stripe event | Cashier's webhook, verified by signature |
@@ -204,6 +204,21 @@ stuffing, mass signups and mail floods:
 The login limiter is keyed on the email *and* the IP so that flooding one address
 cannot lock its owner out from elsewhere.
 
+## Production image
+
+`Dockerfile` builds a php-fpm image (PHP 8.4, opcache, no dev dependencies) listening on
+`:9000`; put a FastCGI-capable proxy in front of it (the production stack in
+[task-management-docker](https://github.com/cristiangirlea/task-management-docker) uses Caddy).
+Configuration comes from environment variables. On start, `docker/entrypoint.prod.sh` caches
+config, routes, views and events, runs pending migrations, then starts php-fpm; it never seeds.
+The container reports healthy once php-fpm answers its `/ping`.
+
+In production the Stripe webhook is only registered when `STRIPE_WEBHOOK_SECRET` is set, so
+unsigned events are never accepted.
+
+CI builds the image on every push and boots it against Postgres; `release.yml` publishes it to
+`ghcr.io/cristiangirlea/task-management-api` from `master` and `v*` tags.
+
 ## Development
 
 ```bash
@@ -214,7 +229,8 @@ php artisan make:repository Foo
 php artisan make:response-handler Foo
 ```
 
-CI (`.github/workflows/ci.yml`) runs Pint and Pest on every push and pull request.
+CI (`.github/workflows/ci.yml`) runs Pint and Pest, checks that routes cache, and builds and
+boots the production image on every push and pull request.
 
 ### Layout
 

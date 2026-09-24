@@ -20,6 +20,14 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(SeatSynchronizer::class, StripeSeatSynchronizer::class);
+
+        // Cashier checks webhook signatures only when it has a secret. In
+        // production, rather than accept unsigned events that anyone could
+        // forge, leave the webhook route unregistered until one is set.
+        // (Here, not in boot(): Cashier registers its routes first.)
+        if ($this->app->isProduction() && blank(config('cashier.webhook.secret'))) {
+            Cashier::ignoreRoutes();
+        }
     }
 
     /**

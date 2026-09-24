@@ -4,7 +4,9 @@ namespace Tests\Feature\Api;
 
 use App\Models\Tenant;
 use App\Models\User;
+use App\Providers\AppServiceProvider;
 use Illuminate\Testing\TestResponse;
+use Laravel\Cashier\Cashier;
 use Laravel\Cashier\Subscription;
 use Tests\Concerns\CreatesSubscriptions;
 use Tests\TestCase;
@@ -151,5 +153,27 @@ class StripeWebhookTest extends TestCase
         $this->send($forged, secret: 'whsec_guessed')->assertForbidden();
 
         $this->assertSame(3, $this->subscription()->quantity);
+    }
+
+    /**
+     * Without a secret Cashier would accept unsigned events, so production
+     * does not register the webhook at all until one is configured.
+     */
+    public function test_production_without_a_webhook_secret_does_not_listen(): void
+    {
+        $this->app['env'] = 'production';
+        config(['cashier.webhook.secret' => null]);
+
+        try {
+            (new AppServiceProvider($this->app))->register();
+            $this->assertFalse(Cashier::$registersRoutes);
+
+            Cashier::$registersRoutes = true;
+            config(['cashier.webhook.secret' => 'whsec_live']);
+            (new AppServiceProvider($this->app))->register();
+            $this->assertTrue(Cashier::$registersRoutes);
+        } finally {
+            Cashier::$registersRoutes = true;
+        }
     }
 }

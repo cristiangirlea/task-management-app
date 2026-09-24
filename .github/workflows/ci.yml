@@ -43,3 +43,56 @@ jobs:
           php artisan route:cache
           php artisan route:list --path=api/stripe/webhook | grep -q cashier.webhook
           php artisan route:clear
+
+  image:
+    name: Build and boot the production image
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: task-management-api:ci
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api,mode=max
+
+      # The tests run on SQLite; this is where the migrations meet Postgres.
+      - name: Boot against Postgres
+        run: |
+          docker network create ci
+          docker run -d --name db --network ci -e POSTGRES_PASSWORD=secret -e POSTGRES_DB=app postgres:16-alpine
+          for i in $(seq 1 30); do docker exec db pg_isready -U postgres -d app && break; sleep 1; done
+
+          docker run -d --name api --network ci \
+            -e APP_ENV=production -e APP_DEBUG=false -e APP_KEY="base64:$(openssl rand -base64 32)" \
+            -e DB_CONNECTION=pgsql -e DB_HOST=db -e DB_DATABASE=app -e DB_USERNAME=postgres -e DB_PASSWORD=secret \
+            -e CACHE_STORE=array -e SESSION_DRIVER=array -e LOG_CHANNEL=stderr -e CASHIER_PATH=api/stripe \
+            -e STRIPE_WEBHOOK_SECRET=whsec_ci \
+            task-management-api:ci
+
+          # Healthy means the entrypoint finished (caches, migrations) and php-fpm answers.
+          for i in $(seq 1 60); do
+            [ "$(docker inspect -f '{{.State.Health.Status}}' api)" = healthy ] && break
+            [ "$(docker inspect -f '{{.State.Running}}' api)" = true ] || break
+            sleep 2
+          done
+          docker logs api
+          test "$(docker inspect -f '{{.State.Health.Status}}' api)" = healthy
+
+      - name: Serve requests through php-fpm
+        run: |
+          fcgi() {
+            docker exec -e REQUEST_METHOD="$1" -e REQUEST_URI="$2" -e SCRIPT_NAME=/index.php \
+              -e SCRIPT_FILENAME=/var/www/html/public/index.php -e HTTP_ACCEPT=application/json \
+              api cgi-fcgi -bind -connect 127.0.0.1:9000
+          }
+          fcgi GET /up | grep -q '200 OK\|Status: 200\|Application up' || { fcgi GET /up; exit 1; }
+          fcgi GET /api/billing | grep -q 'Unauthenticated' || { fcgi GET /api/billing; exit 1; }
+          fcgi POST /api/stripe/webhook | grep -q 'Status: 403' || { fcgi POST /api/stripe/webhook; exit 1; }
+          docker exec api php artisan migrate:status | grep -q create_subscriptions_table
