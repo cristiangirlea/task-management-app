@@ -34,8 +34,9 @@ class InvitationController extends ApiBaseController
         $tenant = $request->user()->tenant;
 
         $invitation = $this->invitations->invite($tenant, $request->user(), $request->input('email'));
+        $message = $invitation->emailSent ? __('invitation.store.success') : __('invitation.store.mail_failed');
 
-        return $this->respondApiSuccess(InvitationResource::class, $invitation, __('invitation.store.success'), 201);
+        return $this->respondApiSuccess(InvitationResource::class, $invitation, $message, 201);
     }
 
     /**
@@ -47,8 +48,9 @@ class InvitationController extends ApiBaseController
         $this->authorize('manage', $request->user()->tenant);
 
         $invitation = $this->invitations->resend($invitation);
+        $message = $invitation->emailSent ? __('invitation.resend.success') : __('invitation.resend.mail_failed');
 
-        return $this->respondApiSuccess(InvitationResource::class, $invitation, __('invitation.resend.success'));
+        return $this->respondApiSuccess(InvitationResource::class, $invitation, $message);
     }
 
     public function destroy(Request $request, Invitation $invitation): JsonResponse

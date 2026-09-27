@@ -42,9 +42,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tenant/members', [MemberController::class, 'index'])->name('members.index');
     Route::delete('/tenant/members/{member}', [MemberController::class, 'destroy'])->name('members.destroy');
     Route::get('/tenant/invitations', [InvitationController::class, 'index'])->name('invitations.index');
-    Route::post('/tenant/invitations', [InvitationController::class, 'store'])->name('invitations.store');
+    Route::post('/tenant/invitations', [InvitationController::class, 'store'])
+        ->middleware('throttle:invitations')
+        ->name('invitations.store');
     Route::post('/tenant/invitations/{invitation}/resend', [InvitationController::class, 'resend'])
-        ->middleware('throttle:mail')
+        ->middleware('throttle:invitations')
         ->name('invitations.resend');
     Route::delete('/tenant/invitations/{invitation}', [InvitationController::class, 'destroy'])->name('invitations.destroy');
 

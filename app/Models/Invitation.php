@@ -36,6 +36,9 @@ class Invitation extends Model
     /** The token issued by this model instance, if any; never persisted. */
     public ?string $plainToken = null;
 
+    /** Whether the email carrying $plainToken went out; null when none was sent. */
+    public ?bool $emailSent = null;
+
     protected function casts(): array
     {
         return [

@@ -73,5 +73,12 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         RateLimiter::for('verification', fn (Request $request) => Limit::perMinute(3)->by($request->user()?->id ?: $request->ip()));
+
+        // Sending and re-sending invitations emails someone; per owner, so
+        // people behind one office IP do not share a budget.
+        RateLimiter::for('invitations', fn (Request $request) => [
+            Limit::perMinute(10)->by('minute:'.$request->user()?->id),
+            Limit::perHour(100)->by('hour:'.$request->user()?->id),
+        ]);
     }
 }
