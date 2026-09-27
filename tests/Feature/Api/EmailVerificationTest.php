@@ -130,7 +130,7 @@ class EmailVerificationTest extends TestCase
     {
         $invitation = Invitation::factory()->create(['email' => 'new@example.com']);
 
-        $this->postJson("/api/invitations/{$invitation->token}/accept", [
+        $this->postJson("/api/invitations/{$invitation->plainToken}/accept", [
             'name' => 'New Person',
             'password' => 'secret-password',
             'password_confirmation' => 'secret-password',

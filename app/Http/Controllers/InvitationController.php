@@ -38,6 +38,19 @@ class InvitationController extends ApiBaseController
         return $this->respondApiSuccess(InvitationResource::class, $invitation, __('invitation.store.success'), 201);
     }
 
+    /**
+     * Email the invitation again with a new link (the old one stops working).
+     * The response carries the new link, the only time it can be read.
+     */
+    public function resend(Request $request, Invitation $invitation): JsonResponse
+    {
+        $this->authorize('manage', $request->user()->tenant);
+
+        $invitation = $this->invitations->resend($invitation);
+
+        return $this->respondApiSuccess(InvitationResource::class, $invitation, __('invitation.resend.success'));
+    }
+
     public function destroy(Request $request, Invitation $invitation): JsonResponse
     {
         $this->authorize('manage', $request->user()->tenant);

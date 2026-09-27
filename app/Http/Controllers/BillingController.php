@@ -63,6 +63,10 @@ class BillingController extends ApiBaseController
             return $this->respondApiError(__('billing.no_customer'), 409);
         }
 
+        // The portal shows upcoming invoices, so make sure they bill the
+        // current number of members.
+        $this->billing->syncSeats($tenant);
+
         return $this->respondApiSuccess(null, ['url' => $tenant->billingPortalUrl($this->settingsUrl())], __('billing.portal'));
     }
 

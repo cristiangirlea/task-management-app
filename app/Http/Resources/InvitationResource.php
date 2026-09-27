@@ -6,7 +6,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Owner-facing view of an invitation, including the shareable accept link.
+ * Owner-facing view of an invitation. The shareable accept link is included
+ * only right after it was issued (sending or re-sending): only its hash is
+ * stored.
  */
 class InvitationResource extends JsonResource
 {
@@ -20,7 +22,7 @@ class InvitationResource extends JsonResource
                 'name' => $this->inviter->name,
             ] : null),
             'expires_at' => $this->expires_at?->toIso8601String(),
-            'accept_url' => $this->acceptUrl(),
+            'accept_url' => $this->when($this->plainToken !== null, fn () => $this->acceptUrl()),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

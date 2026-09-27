@@ -8,12 +8,23 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use LogicException;
 
 class WorkspaceInvitationMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public Invitation $invitation) {}
+    /**
+     * Captured now: only the model that issued the token knows it, and a
+     * queued mail would reload the invitation from the database.
+     */
+    public readonly string $acceptUrl;
+
+    public function __construct(public Invitation $invitation)
+    {
+        $this->acceptUrl = $invitation->acceptUrl()
+            ?? throw new LogicException('An invitation email needs a freshly issued token.');
+    }
 
     public function envelope(): Envelope
     {
@@ -29,7 +40,7 @@ class WorkspaceInvitationMail extends Mailable
             with: [
                 'workspace' => $this->invitation->tenant->name,
                 'inviter' => $this->invitation->inviter?->name,
-                'acceptUrl' => $this->invitation->acceptUrl(),
+                'acceptUrl' => $this->acceptUrl,
                 'expiresAt' => $this->invitation->expires_at,
             ],
         );

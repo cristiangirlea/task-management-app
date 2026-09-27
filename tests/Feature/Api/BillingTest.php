@@ -174,7 +174,7 @@ class BillingTest extends TestCase
         $invitation = Invitation::factory()->create(['tenant_id' => $owner->tenant_id, 'invited_by' => $owner->id]);
 
         app('auth')->forgetGuards();
-        $this->postJson("/api/invitations/{$invitation->token}/accept", [
+        $this->postJson("/api/invitations/{$invitation->plainToken}/accept", [
             'name' => 'New Person',
             'password' => 'secret-password',
             'password_confirmation' => 'secret-password',
