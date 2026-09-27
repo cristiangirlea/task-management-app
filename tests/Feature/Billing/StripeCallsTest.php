@@ -100,4 +100,63 @@ class StripeCallsTest extends TestCase
         $this->assertSame('http://localhost:3000/settings?billing=success', $session['params']['success_url']);
         $this->assertSame('cus_new', $owner->tenant->fresh()->stripe_id);
     }
+
+    private function list(array $items): array
+    {
+        return ['object' => 'list', 'data' => $items, 'has_more' => false];
+    }
+
+    public function test_checkout_is_refused_while_stripe_already_has_a_subscription_for_the_workspace(): void
+    {
+        // Paid a moment ago; the webhook has not arrived, so locally it is still Free.
+        $this->actingAsTenantUser(Tenant::factory()->create(['stripe_id' => 'cus_paid']));
+        $this->stripe->on('GET', '/v1/subscriptions', $this->list([
+            ['id' => 'sub_old', 'object' => 'subscription', 'status' => 'canceled'],
+            ['id' => 'sub_new', 'object' => 'subscription', 'status' => 'incomplete'],
+        ]));
+
+        $this->postJson('/api/billing/checkout')
+            ->assertStatus(409)
+            ->assertJsonPath('message', __('billing.pending_subscription'));
+
+        $this->assertSame(['GET /v1/subscriptions'], $this->stripe->calls());
+    }
+
+    public function test_a_new_checkout_expires_the_one_left_open_in_another_tab(): void
+    {
+        $this->actingAsTenantUser(Tenant::factory()->create(['stripe_id' => 'cus_known']));
+        $this->stripe
+            ->on('GET', '/v1/subscriptions', $this->list([['id' => 'sub_x', 'object' => 'subscription', 'status' => 'canceled']]))
+            ->on('GET', '/v1/checkout/sessions', $this->list([['id' => 'cs_old', 'object' => 'checkout.session', 'status' => 'open']]))
+            ->on('POST', '/v1/checkout/sessions/cs_old/expire', ['id' => 'cs_old', 'object' => 'checkout.session', 'status' => 'expired'])
+            ->on('GET', '/v1/customers/cus_known', ['id' => 'cus_known', 'object' => 'customer'])
+            ->on('POST', '/v1/checkout/sessions', ['id' => 'cs_new', 'object' => 'checkout.session', 'url' => 'https://checkout.stripe.com/c/pay/cs_new']);
+
+        $this->postJson('/api/billing/checkout')
+            ->assertOk()
+            ->assertJsonPath('data.url', 'https://checkout.stripe.com/c/pay/cs_new');
+
+        $this->assertSame([
+            'GET /v1/subscriptions',
+            'GET /v1/checkout/sessions',
+            'POST /v1/checkout/sessions/cs_old/expire',
+            'GET /v1/customers/cus_known',
+            'POST /v1/checkout/sessions',
+        ], $this->stripe->calls());
+    }
+
+    public function test_stripe_being_unreachable_is_a_clear_502_not_a_500(): void
+    {
+        $owner = $this->actingAsTenantUser();
+        $this->subscribe($owner->tenant);
+
+        $this->postJson('/api/billing/portal')
+            ->assertStatus(502)
+            ->assertJsonPath('message', __('billing.stripe_unavailable'));
+
+        $this->actingAsTenantUser();
+        $this->postJson('/api/billing/checkout')
+            ->assertStatus(502)
+            ->assertJsonPath('message', __('billing.stripe_unavailable'));
+    }
 }
