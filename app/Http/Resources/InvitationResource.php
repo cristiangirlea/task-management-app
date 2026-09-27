@@ -23,6 +23,7 @@ class InvitationResource extends JsonResource
             ] : null),
             'expires_at' => $this->expires_at?->toIso8601String(),
             'accept_url' => $this->when($this->plainToken !== null, fn () => $this->acceptUrl()),
+            'email_sent' => $this->when($this->emailSent !== null, fn () => $this->emailSent),
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

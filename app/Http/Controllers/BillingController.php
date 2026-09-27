@@ -6,6 +6,7 @@ use App\Models\Tenant;
 use App\Services\BillingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Stripe\Exception\ApiErrorException;
 
 /**
  * The workspace's plan. Any member may read it; owners start a Stripe
@@ -34,19 +35,13 @@ class BillingController extends ApiBaseController
             return $this->respondApiError(__('billing.not_configured'), 503);
         }
 
-        if ($this->billing->isSubscribed($tenant)) {
-            return $this->respondApiError(__('billing.already_subscribed'), 409);
-        }
+        $url = $this->stripe(fn () => $this->billing->checkoutUrl(
+            $tenant,
+            $this->settingsUrl('?billing=success'),
+            $this->settingsUrl('?billing=cancel'),
+        ));
 
-        $checkout = $tenant->newSubscription('default', config('billing.price_id'))
-            ->quantity($this->billing->seatsUsed($tenant))
-            ->allowPromotionCodes()
-            ->checkout([
-                'success_url' => $this->settingsUrl('?billing=success'),
-                'cancel_url' => $this->settingsUrl('?billing=cancel'),
-            ]);
-
-        return $this->respondApiSuccess(null, ['url' => $checkout->url], __('billing.checkout'));
+        return $this->respondApiSuccess(null, ['url' => $url], __('billing.checkout'));
     }
 
     public function portal(Request $request): JsonResponse
@@ -67,7 +62,24 @@ class BillingController extends ApiBaseController
         // current number of members.
         $this->billing->syncSeats($tenant);
 
-        return $this->respondApiSuccess(null, ['url' => $tenant->billingPortalUrl($this->settingsUrl())], __('billing.portal'));
+        $url = $this->stripe(fn () => $tenant->billingPortalUrl($this->settingsUrl()));
+
+        return $this->respondApiSuccess(null, ['url' => $url], __('billing.portal'));
+    }
+
+    /**
+     * Stripe being down or refusing a request is a 502 the owner can act on
+     * (try again), not an unexplained 500.
+     */
+    private function stripe(callable $call): mixed
+    {
+        try {
+            return $call();
+        } catch (ApiErrorException $e) {
+            report($e);
+
+            abort(502, __('billing.stripe_unavailable'));
+        }
     }
 
     private function configured(): bool

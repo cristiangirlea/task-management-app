@@ -4,6 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 /**
  * Store invitation tokens as SHA-256 hashes, like password-reset and API
@@ -19,9 +20,11 @@ return new class extends Migration
             $table->string('token_hash', 64)->nullable()->after('email');
         });
 
+        // A token left null by an earlier rollback gets an unguessable hash:
+        // that link is gone either way, and the hashes must stay unique.
         DB::table('invitations')->select(['id', 'token'])->chunkById(500, function ($rows) {
             foreach ($rows as $row) {
-                DB::table('invitations')->where('id', $row->id)->update(['token_hash' => hash('sha256', $row->token)]);
+                DB::table('invitations')->where('id', $row->id)->update(['token_hash' => hash('sha256', $row->token ?? Str::random(64))]);
             }
         });
 
@@ -38,7 +41,8 @@ return new class extends Migration
 
     /**
      * A hash cannot be turned back into its token, so pending invitations
-     * have no working link after rolling back: send them again.
+     * have no working link after rolling back: send them again. An API image
+     * from before this migration needs the database restored from a backup.
      */
     public function down(): void
     {

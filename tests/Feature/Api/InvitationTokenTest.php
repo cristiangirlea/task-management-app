@@ -129,7 +129,8 @@ class InvitationTokenTest extends TestCase
      */
     public function test_links_sent_before_hashing_still_work_after_the_migration(): void
     {
-        $this->artisan('migrate:rollback', ['--step' => 1])->assertSuccessful();
+        $migration = 'database/migrations/2026_09_27_000000_hash_invitation_tokens.php';
+        $this->artisan('migrate:rollback', ['--path' => $migration])->assertSuccessful();
 
         $tenant = Tenant::factory()->create();
         $inviter = User::factory()->create(['tenant_id' => $tenant->id]);
@@ -143,9 +144,24 @@ class InvitationTokenTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $this->artisan('migrate')->assertSuccessful();
+        $this->artisan('migrate', ['--path' => $migration])->assertSuccessful();
 
         $this->assertSame('early@example.com', Invitation::findByToken($legacy)?->email);
         $this->accept($legacy)->assertCreated();
+    }
+
+    /**
+     * Rolling back nulls every token; migrating forward again must not give
+     * them all the same hash.
+     */
+    public function test_the_migration_can_run_again_after_a_rollback(): void
+    {
+        $migration = 'database/migrations/2026_09_27_000000_hash_invitation_tokens.php';
+        Invitation::factory()->count(2)->create(['tenant_id' => $this->owner->tenant_id, 'invited_by' => $this->owner->id]);
+
+        $this->artisan('migrate:rollback', ['--path' => $migration])->assertSuccessful();
+        $this->artisan('migrate', ['--path' => $migration])->assertSuccessful();
+
+        $this->assertSame(2, DB::table('invitations')->distinct()->count('token_hash'));
     }
 }

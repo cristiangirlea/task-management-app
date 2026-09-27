@@ -36,6 +36,13 @@ class ReconcileSeats extends Command
                 $billed = $tenant->subscription('default')->quantity;
                 $members = $billing->seatsUsed($tenant);
 
+                if ($billed === null) {
+                    // More than one price: not a per-seat subscription this app manages.
+                    $this->line("Workspace {$tenant->id}: subscription has no single seat quantity; skipped.");
+
+                    continue;
+                }
+
                 if ($billed === $members) {
                     continue;
                 }
@@ -51,7 +58,8 @@ class ReconcileSeats extends Command
 
                 $billing->syncSeats($tenant);
 
-                if ($tenant->subscription('default')->refresh()->quantity === $members) {
+                // Against a fresh count: someone may have joined or left meanwhile.
+                if ($tenant->subscription('default')->refresh()->quantity === $billing->seatsUsed($tenant)) {
                     $this->line("{$line}: updated.");
                 } else {
                     $failed++;

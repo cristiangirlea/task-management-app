@@ -3,13 +3,16 @@
 return [
     'store' => [
         'success' => 'Invitation envoyée.',
+        'mail_failed' => 'Invitation créée, mais l\'e-mail n\'a pas pu être envoyé. Partagez plutôt le lien ci-dessous.',
     ],
     'destroy' => [
         'success' => 'Invitation révoquée.',
     ],
     'resend' => [
         'success' => 'Invitation renvoyée avec un nouveau lien.',
+        'mail_failed' => 'Nouveau lien créé, mais l\'e-mail n\'a pas pu être envoyé. Partagez plutôt le lien ci-dessous.',
         'unavailable' => 'Seules les invitations en attente peuvent être renvoyées. Invitez plutôt la personne à nouveau.',
+        'registered' => 'Cette adresse e-mail a désormais un compte : l\'invitation ne peut plus être acceptée. Révoquez-la.',
     ],
     'accept' => [
         'success' => 'Bienvenue dans :workspace.',

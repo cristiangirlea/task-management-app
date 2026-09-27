@@ -8,4 +8,6 @@ return [
     'already_subscribed' => 'Cet espace de travail est déjà au forfait Équipe. Utilisez « Gérer la facturation » pour le modifier.',
     'no_customer' => 'Cet espace de travail n\'a pas encore de compte de facturation. Passez d\'abord au forfait Équipe.',
     'not_configured' => 'La facturation n\'est pas configurée sur ce serveur.',
+    'pending_subscription' => 'Stripe a déjà un abonnement pour cet espace de travail qui ne nous est pas encore parvenu. Actualisez dans une minute au lieu de payer à nouveau ; si le forfait affiche toujours Gratuit, utilisez « Gérer la facturation ».',
+    'stripe_unavailable' => 'Impossible de joindre Stripe. Rien n\'a été débité ; veuillez réessayer dans un instant.',
 ];

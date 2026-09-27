@@ -72,7 +72,8 @@ For the full stack (Postgres, Redis, nginx, frontend) see
   credential: anyone who can read it can consume the invitation and take that identity.
   For the same reason only a SHA-256 hash of each link's token is stored, so a copy of the
   database holds no working links. The link is returned when it is issued (invite or resend)
-  and never again.
+  and never again. If the email cannot be sent, the invitation still stands and the response
+  says so (`email_sent: false`) so the owner can share the link another way.
 - The tenant scope fails closed. A user with no workspace reaches nothing, rather than
   everything, which matters when upgrading a database written by an older release.
 - Changing or resetting a password revokes the account's other tokens.
@@ -181,6 +182,11 @@ The workspace is the paying customer (Laravel Cashier's billable model is `Tenan
   hourly `billing:reconcile-seats` command (scheduled in `routes/console.php`; production
   runs `php artisan schedule:work` in its own container) corrects it, as does an owner
   opening the billing portal. `--dry-run` lists workspaces that are out of line.
+  Its output goes to `SCHEDULE_OUTPUT` when set (the production scheduler sets its own
+  log), and a killed run cannot block the next one: its lock expires after 55 minutes.
+- Checkout cannot be paid twice: requests are serialised per workspace, a subscription
+  Stripe already has (webhook not yet arrived) is refused with 409, and an older
+  checkout left open in another tab is expired. Stripe being unreachable is a 502.
 - A cancelled subscription stays Team until the paid period ends. A **past-due** one also
   stays Team while Stripe retries the card (`Cashier::keepPastDueSubscriptionsActive()`),
   and `GET /api/billing` reports `has_payment_problem` so the owner can fix it.
@@ -198,7 +204,7 @@ Setting it up in Stripe test mode:
 
 ## Rate limits
 
-Unauthenticated endpoints are throttled in `AppServiceProvider` to blunt credential
+Endpoints that can be abused are throttled in `AppServiceProvider` to blunt credential
 stuffing, mass signups and mail floods:
 
 | Limiter | Applies to | Limit |
@@ -207,6 +213,7 @@ stuffing, mass signups and mail floods:
 | `register` | registration and invitation acceptance | 10/hour per IP |
 | `mail` | forgot/reset password | 3/min per email+IP, 20/hour per IP |
 | `verification` | resending the verification email | 3/min per user |
+| `invitations` | sending and re-sending invitations | 10/min and 100/hour per owner |
 
 The login limiter is keyed on the email *and* the IP so that flooding one address
 cannot lock its owner out from elsewhere.
