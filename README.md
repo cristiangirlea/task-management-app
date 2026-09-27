@@ -70,6 +70,9 @@ For the full stack (Postgres, Redis, nginx, frontend) see
   Owners manage the workspace name, members and invitations; members use projects and tasks.
   Listing invitations is owner-only, because an invitation's accept link *is* the invitee's
   credential: anyone who can read it can consume the invitation and take that identity.
+  For the same reason only a SHA-256 hash of each link's token is stored, so a copy of the
+  database holds no working links. The link is returned when it is issued (invite or resend)
+  and never again.
 - The tenant scope fails closed. A user with no workspace reaches nothing, rather than
   everything, which matters when upgrading a database written by an older release.
 - Changing or resetting a password revokes the account's other tokens.
@@ -103,7 +106,8 @@ All responses use one envelope:
 | GET / PUT | `/api/tenant` | `name?, slug?, domain?, settings?` | current workspace (PUT: owners only) |
 | GET | `/api/tenant/members` | | members with roles |
 | DELETE | `/api/tenant/members/{id}` | | owners only; removes the account, their tasks become unassigned |
-| GET / POST | `/api/tenant/invitations` | `email` | pending invitations / invite (owners only, sends an email) |
+| GET / POST | `/api/tenant/invitations` | `email` | pending invitations / invite (owners only, sends an email; the response carries the link, once) |
+| POST | `/api/tenant/invitations/{id}/resend` | | owners; emails a new link (the old one stops working) and returns it once |
 | DELETE | `/api/tenant/invitations/{id}` | | revoke |
 | GET | `/api/invitations/{token}` | | public preview of an invitation |
 | POST | `/api/invitations/{token}/accept` | `name, password, password_confirmation` | public; creates the member and returns `{user, token}` |
@@ -173,7 +177,10 @@ The workspace is the paying customer (Laravel Cashier's billable model is `Tenan
   **402** with a message the frontend shows next to an upgrade link.
 - **Team**: no seat limit, billed per member per month. The Stripe subscription's quantity
   follows the member count: it is updated when someone joins or leaves, and Stripe's
-  webhook writes the confirmed value back.
+  webhook writes the confirmed value back. If Stripe cannot be reached at that moment, the
+  hourly `billing:reconcile-seats` command (scheduled in `routes/console.php`; production
+  runs `php artisan schedule:work` in its own container) corrects it, as does an owner
+  opening the billing portal. `--dry-run` lists workspaces that are out of line.
 - A cancelled subscription stays Team until the paid period ends. A **past-due** one also
   stays Team while Stripe retries the card (`Cashier::keepPastDueSubscriptionsActive()`),
   and `GET /api/billing` reports `has_payment_problem` so the owner can fix it.
