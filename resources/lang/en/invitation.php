@@ -7,6 +7,10 @@ return [
     'destroy' => [
         'success' => 'Invitation revoked.',
     ],
+    'resend' => [
+        'success' => 'Invitation sent again with a new link.',
+        'unavailable' => 'Only pending invitations can be sent again. Invite the person anew instead.',
+    ],
     'accept' => [
         'success' => 'Welcome to :workspace.',
         'already_registered' => 'This email already has an account. Sign in instead.',

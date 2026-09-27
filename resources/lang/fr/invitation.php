@@ -7,6 +7,10 @@ return [
     'destroy' => [
         'success' => 'Invitation révoquée.',
     ],
+    'resend' => [
+        'success' => 'Invitation renvoyée avec un nouveau lien.',
+        'unavailable' => 'Seules les invitations en attente peuvent être renvoyées. Invitez plutôt la personne à nouveau.',
+    ],
     'accept' => [
         'success' => 'Bienvenue dans :workspace.',
         'already_registered' => 'Cette adresse e-mail a déjà un compte. Connectez-vous plutôt.',

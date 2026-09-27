@@ -46,7 +46,7 @@ class SeatLimitTest extends TestCase
     {
         app('auth')->forgetGuards();
 
-        return $this->postJson("/api/invitations/{$invitation->token}/accept", [
+        return $this->postJson("/api/invitations/{$invitation->plainToken}/accept", [
             'name' => 'New Person',
             'password' => 'secret-password',
             'password_confirmation' => 'secret-password',

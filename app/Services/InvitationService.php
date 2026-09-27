@@ -40,6 +40,26 @@ class InvitationService
     }
 
     /**
+     * Email a pending invitation again with a new link. The previous link
+     * stops working (only one token hash is kept) and the invitation gets a
+     * fresh expiry. It already holds its seat, so seats are not checked.
+     */
+    public function resend(Invitation $invitation): Invitation
+    {
+        abort_unless($invitation->status() === 'pending', 410, __('invitation.resend.unavailable'));
+
+        $invitation->issueToken();
+        $invitation->expires_at = now()->addDays(Invitation::LIFETIME_DAYS);
+        $invitation->save();
+
+        $invitation->loadMissing(['tenant', 'inviter']);
+
+        Mail::to($invitation->email)->send(new WorkspaceInvitationMail($invitation));
+
+        return $invitation;
+    }
+
+    /**
      * Create the invitee's account inside the workspace and consume the invitation.
      *
      * The seat is checked again here: the workspace may have filled up since

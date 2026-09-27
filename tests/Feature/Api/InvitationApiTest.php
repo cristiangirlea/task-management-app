@@ -32,7 +32,10 @@ class InvitationApiTest extends TestCase
 
         $invitation = Invitation::withoutGlobalScopes()->where('email', 'new@example.com')->firstOrFail();
         $this->assertSame($owner->tenant_id, $invitation->tenant_id);
-        $this->assertSame('http://localhost:3000/invite/'.$invitation->token, $response->json('data.accept_url'));
+        // The link is returned once; the database only keeps its hash.
+        $token = str($response->json('data.accept_url'))->after('http://localhost:3000/invite/')->toString();
+        $this->assertSame(64, strlen($token));
+        $this->assertSame(Invitation::hashToken($token), $invitation->token_hash);
 
         Mail::assertSent(WorkspaceInvitationMail::class, fn (WorkspaceInvitationMail $mail) => $mail->hasTo('new@example.com')
             && $mail->invitation->is($invitation));
@@ -114,7 +117,7 @@ class InvitationApiTest extends TestCase
         $tenant = Tenant::factory()->create(['name' => 'Acme']);
         $invitation = Invitation::factory()->create(['tenant_id' => $tenant->id, 'email' => 'new@example.com']);
 
-        $this->getJson("/api/invitations/{$invitation->token}")
+        $this->getJson("/api/invitations/{$invitation->plainToken}")
             ->assertOk()
             ->assertJsonPath('data.workspace.name', 'Acme')
             ->assertJsonPath('data.email', 'new@example.com')
@@ -129,7 +132,7 @@ class InvitationApiTest extends TestCase
         $tenant = Tenant::factory()->create(['name' => 'Acme']);
         $invitation = Invitation::factory()->create(['tenant_id' => $tenant->id, 'email' => 'new@example.com']);
 
-        $response = $this->postJson("/api/invitations/{$invitation->token}/accept", [
+        $response = $this->postJson("/api/invitations/{$invitation->plainToken}/accept", [
             'name' => 'New Person',
             'password' => 'secret-password',
             'password_confirmation' => 'secret-password',
@@ -151,7 +154,7 @@ class InvitationApiTest extends TestCase
     {
         $invitation = Invitation::factory()->create();
 
-        $this->postJson("/api/invitations/{$invitation->token}/accept", ['name' => 'x', 'password' => 'short', 'password_confirmation' => 'nope'])
+        $this->postJson("/api/invitations/{$invitation->plainToken}/accept", ['name' => 'x', 'password' => 'short', 'password_confirmation' => 'nope'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['password']);
     }
@@ -162,9 +165,9 @@ class InvitationApiTest extends TestCase
         $expired = Invitation::factory()->expired()->create();
         $used = Invitation::factory()->accepted()->create();
 
-        $this->postJson("/api/invitations/{$expired->token}/accept", $payload)->assertStatus(410);
-        $this->postJson("/api/invitations/{$used->token}/accept", $payload)->assertStatus(410);
-        $this->getJson("/api/invitations/{$expired->token}")->assertOk()->assertJsonPath('data.status', 'expired');
+        $this->postJson("/api/invitations/{$expired->plainToken}/accept", $payload)->assertStatus(410);
+        $this->postJson("/api/invitations/{$used->plainToken}/accept", $payload)->assertStatus(410);
+        $this->getJson("/api/invitations/{$expired->plainToken}")->assertOk()->assertJsonPath('data.status', 'expired');
 
         $this->assertDatabaseMissing('users', ['email' => $expired->email]);
     }
@@ -174,7 +177,7 @@ class InvitationApiTest extends TestCase
         $invitation = Invitation::factory()->create(['email' => 'new@example.com']);
         User::factory()->create(['email' => 'new@example.com']);
 
-        $this->postJson("/api/invitations/{$invitation->token}/accept", ['name' => 'New', 'password' => 'secret-password', 'password_confirmation' => 'secret-password'])
+        $this->postJson("/api/invitations/{$invitation->plainToken}/accept", ['name' => 'New', 'password' => 'secret-password', 'password_confirmation' => 'secret-password'])
             ->assertUnprocessable();
     }
 }

@@ -38,10 +38,10 @@ class SecurityRegressionTest extends TestCase
         $response = $this->getJson('/api/tenant/invitations');
 
         $response->assertForbidden();
-        $this->assertStringNotContainsString($invitation->token, $response->getContent());
+        $this->assertStringNotContainsString($invitation->plainToken, $response->getContent());
 
         // The real invitee's link still works.
-        $this->postJson("/api/invitations/{$invitation->token}/accept", [
+        $this->postJson("/api/invitations/{$invitation->plainToken}/accept", [
             'name' => 'The Real CFO',
             'password' => 'secret-password',
             'password_confirmation' => 'secret-password',
