@@ -35,6 +35,7 @@ class MakeRepository extends Command
 
         if ($this->files->exists($path)) {
             $this->error("Repository {$name} already exists!");
+
             return Command::FAILURE;
         }
 
@@ -43,9 +44,11 @@ class MakeRepository extends Command
 
         if ($this->files->exists($path)) {
             $this->info("Repository {$name} created successfully.");
+
             return Command::SUCCESS;
         } else {
             $this->error("Failed to create Repository {$name}.");
+
             return Command::FAILURE;
         }
     }

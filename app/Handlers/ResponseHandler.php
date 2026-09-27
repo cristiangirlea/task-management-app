@@ -2,26 +2,22 @@
 
 namespace App\Handlers;
 
+use Exception;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Exception;
 
 abstract class ResponseHandler
 {
     /**
      * Handle response generation and error handling.
-     *
-     * @param callable $callback
-     * @param string|null $resourceName
-     * @param string|null $action
-     * @return \Illuminate\Http\JsonResponse
      */
     final public function handle(
         callable $callback,
         ?string $resourceName = null,
         ?string $action = null
-    ): \Illuminate\Http\JsonResponse {
+    ): JsonResponse {
         $resourceName = $resourceName ?? $this->getResourceName();
         $action = $action ?? $this->getActionName();
 
@@ -79,9 +75,6 @@ abstract class ResponseHandler
 
     /**
      * Define default fallback messages for all resources.
-     *
-     * @param string $resourceName
-     * @return array
      */
     protected function defaultMessages(string $resourceName): array
     {
@@ -96,10 +89,6 @@ abstract class ResponseHandler
 
     /**
      * Fetch messages from the response_messages.php config file.
-     *
-     * @param string $resourceName
-     * @param string $action
-     * @return array
      */
     protected function configMessages(string $resourceName, string $action): array
     {
@@ -117,10 +106,6 @@ abstract class ResponseHandler
 
     /**
      * Resource-specific handlers can override this to supply custom messages.
-     *
-     * @param string $resourceName
-     * @param string $action
-     * @return array
      */
     protected function fetchMessages(string $resourceName, string $action): array
     {
@@ -156,7 +141,7 @@ abstract class ResponseHandler
         $data,
         string $message = 'Successfully processed.',
         int $status = 200
-    ): \Illuminate\Http\JsonResponse {
+    ): JsonResponse {
         return response()->json([
             'status' => 'success',
             'message' => $message,
@@ -170,8 +155,8 @@ abstract class ResponseHandler
     protected function errorResponse(
         string $message,
         int $status,
-               $errors = null
-    ): \Illuminate\Http\JsonResponse {
+        $errors = null
+    ): JsonResponse {
         return response()->json([
             'status' => 'error',
             'message' => $message,

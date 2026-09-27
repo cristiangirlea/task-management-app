@@ -3,15 +3,15 @@
 namespace Tests\Unit\Seeders;
 
 use App\Models\Tenant;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
 class TenantSeederTest extends TestCase
 {
     use RefreshDatabase;  // Ensures the database is reset for each test
 
-    public function testTenantSeederCreatesTenants()
+    public function test_tenant_seeder_creates_tenants()
     {
         // Run the seeder for the first time
         Artisan::call('db:seed', ['--class' => 'TenantSeeder']);
@@ -26,7 +26,7 @@ class TenantSeederTest extends TestCase
         ]);
     }
 
-    public function testTenantSeederCreatesUnique_data()
+    public function test_tenant_seeder_creates_unique_data()
     {
         // Reset the database and run the seeder again to add 10 more tenants
         Artisan::call('db:seed', ['--class' => 'TenantSeeder']);

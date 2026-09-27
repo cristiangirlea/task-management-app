@@ -2,81 +2,87 @@
 
 namespace App\Models;
 
+use App\Notifications\ResetPasswordNotification;
+use App\Notifications\VerifyEmailNotification;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens; // Import Sanctum's HasApiTokens trait
+use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
+    public const ROLE_OWNER = 'owner';
+
+    public const ROLE_MEMBER = 'member';
+
     protected $fillable = [
         'name',
         'email',
         'password',
+        'tenant_id',
+        'role',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed', // Auto-hash passwords when set
-    ];
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
+    }
+
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
 
     /**
-     * Relationship: User has many tasks.
+     * Tasks assigned to this user.
      */
-    public function tasks()
+    public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
     }
 
     /**
-     * Relationship: User owns many projects.
+     * Both mails link into the SPA rather than to a Blade page.
      */
-    public function projects()
+    public function sendPasswordResetNotification($token): void
     {
-        return $this->hasMany(Project::class);
+        $this->notify(new ResetPasswordNotification($token));
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmailNotification);
+    }
+
+    public function isOwner(): bool
+    {
+        return $this->role === self::ROLE_OWNER;
+    }
+
+    public function scopeByEmailDomain(Builder $query, string $domain): Builder
+    {
+        return $query->where('email', 'like', '%'.$domain);
     }
 
     /**
-     * Scope to filter users by email domain.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string  $domain
-     * @return \Illuminate\Database\Eloquent\Builder
+     * Issue a new personal access token and return its plain-text value.
      */
-    public function scopeByEmailDomain($query, $domain)
+    public function generateApiToken(string $name = 'api_token'): string
     {
-        return $query->where('email', 'like', '%' . $domain);
-    }
-
-    /**
-     * Generate a new API token for the user.
-     *
-     * @return string
-     */
-    public function generateApiToken(): string
-    {
-        return $this->createToken('api_token')->plainTextToken;
+        return $this->createToken($name)->plainTextToken;
     }
 }

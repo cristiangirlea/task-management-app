@@ -15,7 +15,7 @@ class StoreTenantRequestTest extends TestCase
     /**
      * Test that the validation rules are enforced for valid input.
      */
-    public function testValidDataPassesValidation(): void
+    public function test_valid_data_passes_validation(): void
     {
         $data = [
             'name' => 'Valid Tenant',
@@ -24,7 +24,7 @@ class StoreTenantRequestTest extends TestCase
             'settings' => json_encode(['key' => 'value']),
         ];
 
-        $request = new StoreTenantRequest();
+        $request = new StoreTenantRequest;
         $validator = Validator::make($data, $request->rules(), $request->messages());
 
         $this->assertTrue($validator->passes());
@@ -33,7 +33,7 @@ class StoreTenantRequestTest extends TestCase
     /**
      * Test that invalid data fails validation with custom error messages.
      */
-    public function testInvalidDataFailsValidationWithCustomMessages(): void
+    public function test_invalid_data_fails_validation_with_custom_messages(): void
     {
         $data = [
             'name' => '',
@@ -42,7 +42,7 @@ class StoreTenantRequestTest extends TestCase
             'settings' => 'invalid-json', // Invalid JSON
         ];
 
-        $request = new StoreTenantRequest();
+        $request = new StoreTenantRequest;
         $validator = Validator::make($data, $request->rules(), $request->messages());
 
         $this->assertFalse($validator->passes());
@@ -59,7 +59,7 @@ class StoreTenantRequestTest extends TestCase
     /**
      * Test that uniqueness rules for the slug and domain are applied correctly.
      */
-    public function testSlugAndDomainAreUnique(): void
+    public function test_slug_and_domain_are_unique(): void
     {
         // Simulate existing tenant entries
         Tenant::factory()->create([
@@ -73,7 +73,7 @@ class StoreTenantRequestTest extends TestCase
             'domain' => 'existing.com', // Duplicate domain
         ];
 
-        $request = new StoreTenantRequest();
+        $request = new StoreTenantRequest;
         $validator = Validator::make($data, $request->rules(), $request->messages());
 
         $this->assertFalse($validator->passes());

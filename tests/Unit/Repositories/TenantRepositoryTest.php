@@ -4,6 +4,7 @@ namespace Tests\Unit\Repositories;
 
 use App\Models\Tenant;
 use App\Repositories\TenantRepository;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,13 +17,13 @@ class TenantRepositoryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->tenantRepository = new TenantRepository();
+        $this->tenantRepository = new TenantRepository;
     }
 
     /**
      * Test if we can get all tenants.
      */
-    public function testCanGetAllTenants()
+    public function test_can_get_all_tenants()
     {
         // Arrange: create tenants
         Tenant::factory()->count(3)->create();
@@ -37,7 +38,7 @@ class TenantRepositoryTest extends TestCase
     /**
      * Test if we can find a tenant by its ID.
      */
-    public function testCanFindTenantById()
+    public function test_can_find_tenant_by_id()
     {
         // Arrange: create a tenant
         $tenant = Tenant::factory()->create();
@@ -52,17 +53,17 @@ class TenantRepositoryTest extends TestCase
     /**
      * Test if trying to find a tenant by an invalid ID throws a ModelNotFoundException.
      */
-    public function testThrowsExceptionIfTenantNotFoundById()
+    public function test_throws_exception_if_tenant_not_found_by_id()
     {
         // Act & Assert: assert that the tenant is not found
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+        $this->expectException(ModelNotFoundException::class);
         $this->tenantRepository->findById(999); // assuming 999 does not exist
     }
 
     /**
      * Test if we can find a tenant by its slug.
      */
-    public function testCanFindTenantBySlug()
+    public function test_can_find_tenant_by_slug()
     {
         // Arrange: create a tenant
         $tenant = Tenant::factory()->create(['slug' => 'unique-slug']);
@@ -77,7 +78,7 @@ class TenantRepositoryTest extends TestCase
     /**
      * Test if a new tenant can be created successfully.
      */
-    public function testCanCreateTenant()
+    public function test_can_create_tenant()
     {
         // Arrange: prepare tenant data
         $tenantData = [
@@ -100,7 +101,7 @@ class TenantRepositoryTest extends TestCase
     /**
      * Test if we can update a tenant successfully.
      */
-    public function testCanUpdateTenant()
+    public function test_can_update_tenant()
     {
         // Arrange: create a tenant
         $tenant = Tenant::factory()->create();
@@ -120,7 +121,7 @@ class TenantRepositoryTest extends TestCase
     /**
      * Test if we can delete a tenant successfully.
      */
-    public function testCanDeleteTenant()
+    public function test_can_delete_tenant()
     {
         // Arrange: create a tenant
         $tenant = Tenant::factory()->create();

@@ -2,32 +2,38 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
-use Illuminate\Auth\AuthenticationException;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\HttpKernel\Exception\HttpException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Routing\Exceptions\InvalidSignatureException;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
-
-use Illuminate\Support\Facades\Log;
 
 class Handler extends ExceptionHandler
 {
     public function render($request, Throwable $exception)
     {
-        if ($request->expectsJson() || $request->is('api/*')) {
-            Log::info('API exception rendering started');
+        // The emailed verification link is opened by a browser, not by the SPA,
+        // so it is handled as a web request even though it lives under /api.
+        if ($exception instanceof InvalidSignatureException) {
+            return $this->handleInvalidSignature();
+        }
+
+        if ($request->expectsJson() || $request->is('api/*') || $request->is('mcp/*')) {
             return $this->handleApiException($exception);
         }
 
         return $this->handleWebException($exception);
     }
 
-    protected function handleApiException(Throwable $exception): \Illuminate\Http\JsonResponse
+    protected function handleApiException(Throwable $exception): JsonResponse
     {
-        Log::info('Handling API exception: ' . get_class($exception));
-
         if ($exception instanceof ValidationException) {
             return response()->json([
                 'status' => 'error',
@@ -50,6 +56,13 @@ class Handler extends ExceptionHandler
             ], 404);
         }
 
+        if ($exception instanceof AuthorizationException) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $exception->getMessage() ?: 'This action is unauthorized.',
+            ], 403);
+        }
+
         if ($exception instanceof AuthenticationException) {
             return response()->json([
                 'status' => 'error',
@@ -64,23 +77,35 @@ class Handler extends ExceptionHandler
             ], $exception->getStatusCode());
         }
 
-        return response()->json([
+        $payload = [
             'status' => 'error',
             'message' => 'An unexpected error occurred.',
-            'error' => $exception->getMessage(),
-        ], 500);
+        ];
+
+        if (config('app.debug')) {
+            $payload['error'] = $exception->getMessage();
+        }
+
+        return response()->json($payload, 500);
     }
 
-    protected function handleWebException(Throwable $exception): \Symfony\Component\HttpFoundation\Response
+    /**
+     * A tampered or expired signed link (the email verification URL) should
+     * send the visitor back to the app with an explanation, not a 403 page.
+     */
+    protected function handleInvalidSignature(): RedirectResponse
     {
-        Log::info('Handling Web exception: ' . get_class($exception));
+        return redirect()->away(rtrim((string) config('app.frontend_url'), '/').'/verify-email?status=expired');
+    }
 
+    protected function handleWebException(Throwable $exception): Response
+    {
         if ($exception instanceof NotFoundHttpException) {
             return response()->view('errors.404', [], 404);
         }
 
         if ($exception instanceof HttpException) {
-            return response()->view('errors.' . $exception->getStatusCode(), ['exception' => $exception], $exception->getStatusCode());
+            return response()->view('errors.'.$exception->getStatusCode(), ['exception' => $exception], $exception->getStatusCode());
         }
 
         return response()->view('errors.500', ['exception' => $exception], 500);

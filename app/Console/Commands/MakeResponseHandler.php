@@ -26,7 +26,6 @@ class MakeResponseHandler extends Command
         $this->files = $files;
     }
 
-
     /**
      * Execute the console command.
      */
@@ -37,6 +36,7 @@ class MakeResponseHandler extends Command
 
         if ($this->files->exists($path)) {
             $this->error("Response handler {$name} already exists!");
+
             return Command::FAILURE;
         }
 
@@ -45,9 +45,11 @@ class MakeResponseHandler extends Command
 
         if ($this->files->exists($path)) {
             $this->info("Response handler {$name} created successfully.");
+
             return Command::SUCCESS;
         } else {
             $this->error("Failed to create Response Handler {$name}.");
+
             return Command::FAILURE;
         }
     }

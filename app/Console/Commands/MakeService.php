@@ -35,6 +35,7 @@ class MakeService extends Command
 
         if ($this->files->exists($path)) {
             $this->error("Service {$name} already exists!");
+
             return Command::FAILURE;
         }
 
@@ -43,9 +44,11 @@ class MakeService extends Command
 
         if ($this->files->exists($path)) {
             $this->info("Service {$name} created successfully.");
+
             return Command::SUCCESS;
         } else {
             $this->error("Failed to create Service {$name}.");
+
             return Command::FAILURE;
         }
     }

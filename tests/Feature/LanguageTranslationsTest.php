@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\App;
-use Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
 class LanguageTranslationsTest extends TestCase
 {
@@ -39,7 +39,7 @@ class LanguageTranslationsTest extends TestCase
     ];
 
     #[Test]
-    public function itChecksAllTranslationKeysExistForEveryLanguage()
+    public function it_checks_all_translation_keys_exist_for_every_language()
     {
         foreach ($this->languages as $language) {
             App::setLocale($language); // Set applicable locale
@@ -69,7 +69,7 @@ class LanguageTranslationsTest extends TestCase
     }
 
     #[Test]
-    public function itChecksSpecificTranslationValuesForEnglish()
+    public function it_checks_specific_translation_values_for_english()
     {
         App::setLocale('en'); // Use English locale
 
@@ -86,7 +86,7 @@ class LanguageTranslationsTest extends TestCase
     }
 
     #[Test]
-    public function itChecksSpecificTranslationValuesForFrench()
+    public function it_checks_specific_translation_values_for_french()
     {
         App::setLocale('fr'); // Use French locale
 

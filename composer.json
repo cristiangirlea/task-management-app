@@ -11,11 +11,13 @@
     "require": {
         "php": "^8.4",
         "ext-pdo": "*",
-        "ext-pdo_mysql": "*",
-        "laravel/framework": "^11.31",
+        "laravel/cashier": "^16.8",
+        "laravel/framework": "^13.0",
+        "laravel/mcp": "^1.0",
         "laravel/sanctum": "^4.0",
-        "laravel/tinker": "^2.9",
-        "predis/predis": "^2.3"
+        "laravel/tinker": "^3.0",
+        "predis/predis": "^2.3",
+        "resend/resend-php": "^1.15"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -24,8 +26,8 @@
         "laravel/sail": "^1.26",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.1",
-        "pestphp/pest": "^3.7",
-        "pestphp/pest-plugin-laravel": "^3.0"
+        "pestphp/pest": "^4.0",
+        "pestphp/pest-plugin-laravel": "^4.0"
     },
     "autoload": {
         "psr-4": {

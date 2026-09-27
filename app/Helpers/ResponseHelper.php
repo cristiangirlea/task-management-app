@@ -8,24 +8,19 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class ResponseHelper
 {
     /**
-     * Success response with data and optional message.
-     *
-     * @param  mixed  $data
-     * @param  string|null  $message
-     * @param  int  $statusCode
-     * @return JsonResponse
+     * Success envelope: { status: "success", message?: string, data?: mixed }.
      */
-    public static function success($data = null, ?string $message = null, int $statusCode = 200): JsonResponse
+    public static function success(mixed $data = null, ?string $message = null, int $statusCode = 200): JsonResponse
     {
         $response = [
             'status' => 'success',
         ];
 
-        if ($message) {
+        if ($message !== null) {
             $response['message'] = $message;
         }
 
-        if ($data) {
+        if ($data !== null) {
             $response['data'] = $data instanceof JsonResource ? $data->resolve() : $data;
         }
 
@@ -33,21 +28,16 @@ class ResponseHelper
     }
 
     /**
-     * Error response with a message and optional data.
-     *
-     * @param  string  $message
-     * @param  int  $statusCode
-     * @param  mixed|null  $data
-     * @return JsonResponse
+     * Error envelope: { status: "error", message: string, data?: mixed }.
      */
-    public static function error(string $message, int $statusCode = 400, $data = null): JsonResponse
+    public static function error(string $message, int $statusCode = 400, mixed $data = null): JsonResponse
     {
         $response = [
             'status' => 'error',
             'message' => $message,
         ];
 
-        if ($data) {
+        if ($data !== null) {
             $response['data'] = $data;
         }
 

@@ -2,27 +2,48 @@
 
 namespace Database\Factories;
 
-use Illuminate\Database\Eloquent\Factories\Factory;
-use App\Models\User;
 use App\Models\Project;
+use App\Models\Task;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Task>
+ * @extends Factory<Task>
  */
 class TaskFactory extends Factory
 {
-    protected $model = \App\Models\Task::class;
+    protected $model = Task::class;
 
     public function definition(): array
     {
         return [
-            'title' => $this->faker->sentence(3), // Example: "Complete the project"
-            'description' => $this->faker->paragraph(), // Example: "This task involves..."
-            'status' => $this->faker->randomElement(['pending', 'in_progress', 'completed']),
-            'priority' => $this->faker->numberBetween(1, 5), // Priority between 1 (highest) and 5 (lowest)
-            'due_date' => $this->faker->dateTimeBetween('now', '+1 year'), // Future date
-            'user_id' => User::factory(), // Associate the task with a user
-            'project_id' => Project::factory(), // Associate the task with a project
+            'project_id' => Project::factory(),
+            // Tasks live in the tenant of their project; the assignee is a user of that tenant.
+            'tenant_id' => fn (array $attributes) => Project::withoutGlobalScopes()
+                ->whereKey($attributes['project_id'])
+                ->value('tenant_id'),
+            'user_id' => fn (array $attributes) => User::factory()->create(['tenant_id' => $attributes['tenant_id']])->id,
+            'title' => $this->faker->sentence(3),
+            'description' => $this->faker->paragraph(),
+            'status' => $this->faker->randomElement(Task::STATUSES),
+            'priority' => $this->faker->numberBetween(1, 5),
+            'position' => 0,
+            'due_date' => $this->faker->dateTimeBetween('now', '+1 year'),
         ];
+    }
+
+    public function pending(): static
+    {
+        return $this->state(fn () => ['status' => Task::STATUS_PENDING]);
+    }
+
+    public function inProgress(): static
+    {
+        return $this->state(fn () => ['status' => Task::STATUS_IN_PROGRESS]);
+    }
+
+    public function completed(): static
+    {
+        return $this->state(fn () => ['status' => Task::STATUS_COMPLETED]);
     }
 }

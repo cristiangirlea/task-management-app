@@ -55,6 +55,12 @@ return [
     'url' => env('APP_URL', 'http://localhost'),
 
     /*
+    | Public URL of the web frontend, used to build links sent to users
+    | (for example workspace invitations).
+    */
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------

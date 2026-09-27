@@ -6,20 +6,20 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateProjectRequest extends FormRequest
 {
-    public function authorize()
+    public function authorize(): bool
     {
-        return true;  // Allow all requests for now
+        return true;
     }
 
-    public function rules()
+    public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string|max:1000', // Description is optional, must be a string, and max 1000 characters
+            'name' => 'sometimes|required|string|max:255',
+            'description' => 'nullable|string|max:1000',
         ];
     }
 
-    public function messages()
+    public function messages(): array
     {
         return [
             'name.required' => 'Project name is required.',
