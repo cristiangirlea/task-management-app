@@ -1,7 +1,9 @@
 #!/bin/sh
 # Production entrypoint. Caches are built here rather than in the image
 # because they capture the environment (config) the container starts with.
-# Migrations run on every start; they are a no-op when nothing is pending.
+# The web container (php-fpm) runs migrations on every start; they are a
+# no-op when nothing is pending. Other containers from this image, such as
+# the scheduler, skip them so two never migrate at once.
 # Never seeds: the seeders need dev-only packages and create a demo account.
 set -e
 
@@ -13,6 +15,8 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 php artisan event:cache
-php artisan migrate --force
+if [ "$1" = "php-fpm" ]; then
+    php artisan migrate --force
+fi
 
 exec "$@"

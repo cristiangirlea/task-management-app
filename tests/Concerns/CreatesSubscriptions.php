@@ -18,7 +18,7 @@ trait CreatesSubscriptions
     {
         $tenant->forceFill(['stripe_id' => $tenant->stripe_id ?? 'cus_'.Str::random(10)])->save();
 
-        return Subscription::create($attributes + [
+        $subscription = Subscription::create($attributes + [
             'tenant_id' => $tenant->id,
             'type' => 'default',
             'stripe_id' => 'sub_'.Str::random(10),
@@ -26,6 +26,16 @@ trait CreatesSubscriptions
             'stripe_price' => 'price_testing',
             'quantity' => $tenant->users()->count(),
         ]);
+
+        // The single seat line item, which Cashier updates alongside the subscription.
+        $subscription->items()->create([
+            'stripe_id' => 'si_'.Str::random(10),
+            'stripe_product' => 'prod_team',
+            'stripe_price' => $subscription->stripe_price,
+            'quantity' => $subscription->quantity,
+        ]);
+
+        return $subscription;
     }
 
     protected function seatSync(): FakeSeatSynchronizer

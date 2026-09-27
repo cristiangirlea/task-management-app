@@ -11,8 +11,8 @@ class StripeSeatSynchronizer implements SeatSynchronizer
     /**
      * Stripe prorates the change. A failure is logged rather than thrown: the
      * member change has already happened and must not be rolled back because
-     * Stripe was unreachable. The next change, or an owner opening the
-     * billing portal, brings the quantity back in line.
+     * Stripe was unreachable. The hourly billing:reconcile-seats command, or
+     * the owner opening the billing portal, brings the quantity back in line.
      */
     public function sync(Tenant $tenant, int $seats): void
     {

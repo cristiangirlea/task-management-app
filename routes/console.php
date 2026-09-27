@@ -1,8 +1,7 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote')->hourly();
+// Repairs Stripe seat counts left stale by a failed update (see the command).
+// Production runs the scheduler as its own container (task-management-docker).
+Schedule::command('billing:reconcile-seats')->hourly()->withoutOverlapping();
