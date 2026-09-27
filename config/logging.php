@@ -22,6 +22,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Scheduled Task Output
+    |--------------------------------------------------------------------------
+    |
+    | Where scheduled commands write their output. Laravel discards it by
+    | default. In the scheduler container this is /proc/1/fd/1, the
+    | container's own log.
+    |
+    */
+
+    'schedule_output' => env('SCHEDULE_OUTPUT'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Deprecations Log Channel
     |--------------------------------------------------------------------------
     |

@@ -4,6 +4,7 @@ namespace Tests\Feature\Billing;
 
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Billing\SeatSynchronizer;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Str;
 use Tests\Concerns\CreatesSubscriptions;
@@ -94,12 +95,56 @@ class ReconcileSeatsTest extends TestCase
             ->assertFailed();
     }
 
-    public function test_it_runs_every_hour(): void
+    public function test_a_subscription_without_a_single_seat_quantity_is_skipped_not_failed(): void
+    {
+        $tenant = $this->workspace(members: 2, billed: 2);
+        $tenant->subscription('default')->forceFill(['quantity' => null])->save();
+
+        $this->artisan('billing:reconcile-seats')
+            ->expectsOutputToContain("Workspace {$tenant->id}: subscription has no single seat quantity; skipped.")
+            ->assertSuccessful();
+
+        $this->assertSame([], $this->seatSync()->synced);
+    }
+
+    public function test_someone_joining_during_the_update_is_not_reported_as_a_failure(): void
+    {
+        $tenant = $this->workspace(members: 3, billed: 2);
+        $this->app->instance(SeatSynchronizer::class, new class implements SeatSynchronizer
+        {
+            public function sync(Tenant $tenant, int $seats): void
+            {
+                // A member joins mid-run; their own sync leaves Stripe at the new count.
+                User::factory()->member()->create(['tenant_id' => $tenant->id]);
+                $tenant->subscription('default')->forceFill(['quantity' => $tenant->users()->count()])->save();
+            }
+        });
+
+        $this->artisan('billing:reconcile-seats')
+            ->expectsOutputToContain('updated.')
+            ->assertSuccessful();
+    }
+
+    public function test_it_runs_hourly_and_a_killed_run_cannot_block_the_next_one(): void
     {
         $event = collect(app(Schedule::class)->events())
             ->first(fn ($event) => Str::contains($event->command, 'billing:reconcile-seats'));
 
         $this->assertNotNull($event, 'billing:reconcile-seats is not scheduled');
         $this->assertSame('0 * * * *', $event->expression);
+        $this->assertTrue($event->withoutOverlapping);
+        $this->assertLessThan(60, $event->expiresAt);
+    }
+
+    public function test_the_scheduler_leaves_a_heartbeat_for_its_health_check(): void
+    {
+        $file = storage_path('framework/schedule-heartbeat');
+        @unlink($file);
+
+        $this->artisan('schedule:test', ['--name' => 'heartbeat'])->assertSuccessful();
+
+        $this->assertFileExists($file);
+        $this->assertGreaterThan(time() - 60, filemtime($file));
+        unlink($file);
     }
 }
