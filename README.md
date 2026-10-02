@@ -86,7 +86,9 @@ For the full stack (Postgres, Redis, nginx, frontend) see
   once, so one seen over a shoulder is useless. The secret and the recovery codes are encrypted
   with `APP_KEY` (the codes are also hashed): rotating the key needs the old one kept in
   `APP_PREVIOUS_KEYS`, or every user has to set it up again. Personal access tokens are not
-  affected; they are created by a user who already signed in.
+  affected; they are created by a user who already signed in. Someone who lost both their phone
+  and their recovery codes needs an operator: `php artisan two-factor:disable <email>` turns it
+  off and signs out their sessions (confirm who is asking first, not by email to that address).
 - Every other route requires `Authorization: Bearer <token>`.
 - All project and task queries are scoped to the token owner's tenant by a global Eloquent scope
   (`App\Models\Scopes\TenantScope`); policies (`App\Policies\*`) are a second check.
@@ -224,7 +226,8 @@ stuffing, mass signups and mail floods:
 
 | Limiter | Applies to | Limit |
 | --- | --- | --- |
-| `login` | `POST /api/login`, `POST /api/login/two-factor` | 5/min per email+IP, 20/min per IP |
+| `login` | `POST /api/login` | 5/min per email+IP, 20/min per IP |
+| `two-factor-login` | `POST /api/login/two-factor` | 5/min per challenge, 30/min per IP |
 | `register` | registration and invitation acceptance | 10/hour per IP |
 | `mail` | forgot/reset password | 3/min per email+IP, 20/hour per IP |
 | `verification` | resending the verification email | 3/min per user |

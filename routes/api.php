@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Route;
 // Public. The unauthenticated endpoints are throttled (see AppServiceProvider).
 Route::post('/register', [UserController::class, 'register'])->middleware('throttle:register')->name('register');
 Route::post('/login', [UserController::class, 'login'])->middleware('throttle:login')->name('login');
-Route::post('/login/two-factor', [TwoFactorLoginController::class, 'store'])->middleware('throttle:login')->name('login.two-factor');
+Route::post('/login/two-factor', [TwoFactorLoginController::class, 'store'])->middleware('throttle:two-factor-login')->name('login.two-factor');
 Route::post('/forgot-password', [PasswordResetController::class, 'sendLink'])->middleware('throttle:mail')->name('password.email');
 Route::post('/reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:mail')->name('password.reset');
 Route::get('/invitations/{token}', [InvitationAcceptController::class, 'show'])->name('invitations.show');

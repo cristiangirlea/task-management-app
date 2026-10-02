@@ -218,4 +218,31 @@ class TwoFactorTest extends TestCase
 
         $this->postJson('/api/user/two-factor/recovery-codes', ['password' => 'password'])->assertStatus(409);
     }
+
+    public function test_people_behind_one_ip_do_not_share_a_tiny_limit(): void
+    {
+        foreach (range(1, 6) as $n) {
+            $user = User::factory()->create(['email' => "user{$n}@example.com"]);
+            Sanctum::actingAs($user);
+            $secret = $this->postJson('/api/user/two-factor', ['password' => 'password'])->json('data.secret');
+            $this->postJson('/api/user/two-factor/confirm', ['code' => $this->code($secret)])->assertOk();
+            $this->app['auth']->forgetGuards();
+
+            $challenge = $this->postJson('/api/login', ['email' => "user{$n}@example.com", 'password' => 'password'])->json('data.challenge');
+            $this->postJson('/api/login/two-factor', ['challenge' => $challenge, 'code' => $this->code($secret, 1)])->assertOk();
+        }
+    }
+
+    public function test_an_operator_can_turn_it_off_for_someone_locked_out(): void
+    {
+        [$user] = $this->enabledUser();
+        $user->createToken('laptop');
+
+        $this->artisan('two-factor:disable', ['email' => 'ada@example.com'])->assertSuccessful();
+
+        expect($user->refresh()->hasTwoFactorEnabled())->toBeFalse();
+        expect($user->tokens()->count())->toBe(0);
+        $this->postJson('/api/login', ['email' => 'ada@example.com', 'password' => 'password'])->assertJsonStructure(['data' => ['token']]);
+        $this->artisan('two-factor:disable', ['email' => 'nobody@example.com'])->assertFailed();
+    }
 }
