@@ -230,8 +230,9 @@ The container reports healthy once php-fpm answers its `/ping`.
 In production the Stripe webhook is only registered when `STRIPE_WEBHOOK_SECRET` is set, so
 unsigned events are never accepted.
 
-CI builds the image on every push and boots it against Postgres; `release.yml` publishes it to
-`ghcr.io/cristiangirlea/task-management-api` from `master` and `v*` tags.
+CI builds the image for every pull request and merge to `master` and boots it against Postgres;
+`release.yml` publishes it to `ghcr.io/cristiangirlea/task-management-api` from `master` and `v*`
+tags.
 
 ## Development
 
@@ -244,7 +245,9 @@ php artisan make:response-handler Foo
 ```
 
 CI (`.github/workflows/ci.yml`) runs Pint and Pest, checks that routes cache, and builds and
-boots the production image on every push and pull request.
+boots the production image on every pull request and merge to `master`. Every workflow runs on our own self-hosted runners (the `infra` repo's scale set, named by
+the `CI_RUNNER` repository variable), never on GitHub's: while the variable is unset, the jobs
+are skipped, and pull requests from forks are skipped always.
 
 ### Layout
 

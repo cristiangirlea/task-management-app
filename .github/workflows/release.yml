@@ -4,6 +4,7 @@ name: Release image
 #   ghcr.io/<owner>/task-management-api:latest   (default branch)
 #   ghcr.io/<owner>/task-management-api:sha-<short sha>
 #   ghcr.io/<owner>/task-management-api:<version> (tags v*)
+# On our own runners only, like CI (see ci.yml): skipped while CI_RUNNER is unset.
 on:
   push:
     branches: [master]
@@ -16,7 +17,8 @@ permissions:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    if: vars.CI_RUNNER != ''
+    runs-on: ${{ vars.CI_RUNNER }}
     steps:
       - uses: actions/checkout@v7
 
