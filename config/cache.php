@@ -17,6 +17,10 @@ return [
 
     'default' => env('CACHE_STORE', 'database'),
 
+    // The store rate limits count in; the default store when unset. The
+    // browser tests keep it apart so their many sign-ins are not throttled.
+    'limiter' => env('CACHE_LIMITER_STORE'),
+
     /*
     |--------------------------------------------------------------------------
     | Cache Stores
