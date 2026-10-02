@@ -10,12 +10,15 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TokenController;
+use App\Http\Controllers\TwoFactorController;
+use App\Http\Controllers\TwoFactorLoginController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 // Public. The unauthenticated endpoints are throttled (see AppServiceProvider).
 Route::post('/register', [UserController::class, 'register'])->middleware('throttle:register')->name('register');
 Route::post('/login', [UserController::class, 'login'])->middleware('throttle:login')->name('login');
+Route::post('/login/two-factor', [TwoFactorLoginController::class, 'store'])->middleware('throttle:login')->name('login.two-factor');
 Route::post('/forgot-password', [PasswordResetController::class, 'sendLink'])->middleware('throttle:mail')->name('password.email');
 Route::post('/reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:mail')->name('password.reset');
 Route::get('/invitations/{token}', [InvitationAcceptController::class, 'show'])->name('invitations.show');
@@ -33,6 +36,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/user', [UserController::class, 'updateUser'])->name('user.update');
     Route::delete('/user', [UserController::class, 'deleteUser'])->name('user.destroy');
     Route::post('/logout', [UserController::class, 'logout'])->name('logout');
+    Route::middleware('throttle:two-factor')->group(function () {
+        Route::post('/user/two-factor', [TwoFactorController::class, 'store'])->name('two-factor.store');
+        Route::post('/user/two-factor/confirm', [TwoFactorController::class, 'confirm'])->name('two-factor.confirm');
+        Route::delete('/user/two-factor', [TwoFactorController::class, 'destroy'])->name('two-factor.destroy');
+        Route::post('/user/two-factor/recovery-codes', [TwoFactorController::class, 'recoveryCodes'])->name('two-factor.recovery-codes');
+    });
     Route::post('/email/verification-notification', [EmailVerificationController::class, 'resend'])
         ->middleware('throttle:verification')
         ->name('verification.send');

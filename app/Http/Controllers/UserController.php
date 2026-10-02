@@ -10,6 +10,8 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Services\BillingService;
 use App\Services\TenantService;
+use App\Services\TwoFactorService;
+use App\Traits\IssuesAuthTokens;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,9 +21,12 @@ use Laravel\Sanctum\PersonalAccessToken;
 
 class UserController extends ApiBaseController
 {
+    use IssuesAuthTokens;
+
     public function __construct(
         protected TenantService $tenantService,
         protected BillingService $billing,
+        protected TwoFactorService $twoFactor,
     ) {}
 
     /**
@@ -55,6 +60,13 @@ class UserController extends ApiBaseController
 
         if (! $user || ! Hash::check($request->input('password'), $user->password)) {
             return $this->respondApiError(__('auth.login.error'), 401);
+        }
+
+        if ($user->hasTwoFactorEnabled()) {
+            return $this->respondApiSuccess(null, [
+                'two_factor' => true,
+                'challenge' => $this->twoFactor->createChallenge($user),
+            ], __('auth.two_factor.challenge'));
         }
 
         return $this->respondApiSuccess(null, $this->authPayload($user), __('auth.login.success'));
@@ -106,16 +118,5 @@ class UserController extends ApiBaseController
         }
 
         return $this->respondApiSuccess(null, null, __('auth.logout.success'));
-    }
-
-    /**
-     * @return array{user: UserResource, token: string}
-     */
-    private function authPayload(User $user): array
-    {
-        return [
-            'user' => new UserResource($user->load('tenant')),
-            'token' => $user->createToken('auth_token')->plainTextToken,
-        ];
     }
 }
