@@ -5,12 +5,15 @@ namespace App\Providers;
 use App\Models\Tenant;
 use App\Services\Billing\SeatSynchronizer;
 use App\Services\Billing\StripeSeatSynchronizer;
+use Carbon\CarbonInterval;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Laravel\Cashier\Cashier;
+use Laravel\Mcp\Server\Registrar;
+use Laravel\Passport\Passport;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -28,6 +31,26 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->isProduction() && blank(config('cashier.webhook.secret'))) {
             Cashier::ignoreRoutes();
         }
+
+        $this->configureOAuth();
+    }
+
+    /**
+     * Passport issues OAuth tokens to MCP clients. Its own routes are left
+     * out (routes/ai.php has the ones in use): its consent screen needs a
+     * browser session on the API, and people sign in to the web app instead,
+     * which asks for consent at /authorize. (Here, not in boot(), for the
+     * same reason as Cashier above.)
+     */
+    protected function configureOAuth(): void
+    {
+        Passport::ignoreRoutes();
+        // Shown on the consent screen (laravel/mcp would otherwise register
+        // the scope as "Use MCP server").
+        Passport::tokensCan([Registrar::OAUTH_SCOPE => 'Read and change the projects and tasks in your workspace, as you']);
+        Passport::setDefaultScope([Registrar::OAUTH_SCOPE]);
+        Passport::tokensExpireIn(CarbonInterval::hour());
+        Passport::refreshTokensExpireIn(CarbonInterval::days(30));
     }
 
     /**
@@ -86,6 +109,12 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(5)->by('challenge:'.hash('sha256', (string) $request->input('challenge'))),
             Limit::perMinute(30)->by($request->ip()),
         ]);
+
+        // OAuth for MCP clients. Hosted clients (claude.ai, say) call from a
+        // few shared addresses on behalf of all their users, so these are
+        // loose; registering writes a row, so it is limited harder.
+        RateLimiter::for('oauth', fn (Request $request) => Limit::perMinute(120)->by($request->ip()));
+        RateLimiter::for('oauth-register', fn (Request $request) => Limit::perHour(60)->by($request->ip()));
 
         // Sending and re-sending invitations emails someone; per owner, so
         // people behind one office IP do not share a budget.

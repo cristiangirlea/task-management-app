@@ -40,6 +40,7 @@ sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env
 touch database/database.sqlite
 
 php artisan migrate --seed      # seeds demo@example.com / password in the "Demo Workspace"
+php artisan passport:keys       # optional: OAuth for MCP clients (storage/oauth-*.key)
 php artisan serve               # http://localhost:8000
 ```
 
@@ -58,6 +59,7 @@ For the full stack (Postgres, Redis, nginx, frontend) see
 | `MAIL_*` | Mailer for invitation emails (`log` by default; `resend` with `RESEND_KEY` in production) |
 | `STRIPE_KEY`, `STRIPE_SECRET` | Stripe API keys (test-mode keys locally) |
 | `STRIPE_WEBHOOK_SECRET` | Signing secret of the webhook endpoint; signatures are checked when set |
+| `PASSPORT_PRIVATE_KEY`, `PASSPORT_PUBLIC_KEY` | RSA key pair that signs OAuth tokens for MCP clients, each on one line with `\n` for line breaks; without it (or `storage/oauth-*.key`), OAuth is off |
 | `STRIPE_PRICE_ID` | The Team plan: a recurring, monthly, per-unit Price |
 | `CASHIER_PATH` | `api/stripe`, so the webhook is `POST /api/stripe/webhook` |
 | `BILLING_FREE_SEATS` | Members a free workspace may have (default 3), pending invitations included |
@@ -150,8 +152,9 @@ Task `status` is one of `pending`, `in_progress`, `completed`.
 
 The app ships an [MCP](https://modelcontextprotocol.io) server (built with the official
 [`laravel/mcp`](https://laravel.com/docs/mcp) package) at `POST /mcp`, using the Streamable HTTP
-transport. It is protected by the same Sanctum tokens as the REST API, so an agent always acts
-as one user inside one workspace and sees exactly what that user sees.
+transport. An agent always acts as one user inside one workspace and sees exactly what that user
+sees. It takes an OAuth access token, which clients get by themselves, or an API token made in the
+web app.
 
 | Tool | What it does |
 | --- | --- |
@@ -167,23 +170,41 @@ as one user inside one workspace and sees exactly what that user sees.
 
 Connect a client:
 
-1. Sign in and create a token: `POST /api/tokens` with `{"name": "claude"}` (or use the token returned by `/api/login`).
-2. Point the client at `https://<your-host>/mcp` with an `Authorization: Bearer <token>` header. For example with Claude Code:
+1. Add `https://<your-host>/mcp` as a remote MCP server in Claude, Cursor, VS Code or Claude Code
+   (`claude mcp add --transport http task-board https://<your-host>/mcp`). The client opens the web
+   app, where you sign in and allow it; nothing to copy.
 
-   ```bash
-   claude mcp add --transport http task-board https://<your-host>/mcp \
-     --header "Authorization: Bearer <token>"
-   ```
-
-   Any MCP client that supports Streamable HTTP with custom headers works the same way.
-3. Ask the agent things like "what is overdue?", "what is assigned to me?", "find the invoicing work" or
+   Clients that only take a fixed header can use an API token instead: create one in Settings (or
+   `POST /api/tokens` with `{"name": "claude"}`) and send `Authorization: Bearer <token>`.
+2. Ask the agent things like "what is overdue?", "what is assigned to me?", "find the invoicing work" or
    "move task 12 to in progress, top of the column". `list_tasks` answers each of those in a single filtered
    call and caps what it returns, so a large workspace does not flood the agent's context; when a result is
    truncated the reply says how many matched so the agent can narrow it.
 
 The server is intentionally **not** registered as a local stdio server: without an authenticated
-user there is no tenant to scope to. Clients that require OAuth instead of a static token can be
-supported later through Laravel Passport, which `laravel/mcp` integrates with.
+user there is no tenant to scope to.
+
+### OAuth
+
+OAuth 2.1 (authorization code with PKCE, and refresh tokens) is served by Laravel Passport, with
+dynamic client registration from `laravel/mcp`. It needs Passport's key pair (see Configuration);
+without one, the MCP server takes API tokens only.
+
+1. An unauthenticated `POST /mcp` answers 401 with `WWW-Authenticate: Bearer resource_metadata=…`,
+   pointing at `/.well-known/oauth-protected-resource/mcp`, which names this app as the
+   authorization server (`/.well-known/oauth-authorization-server`).
+2. The client registers itself (`POST /oauth/register`) as a public client.
+3. It sends the browser to `GET /oauth/authorize`. The API checks the request, then redirects to the
+   web app's `/authorize?request=<id>`, which signs the person in (with their second factor) and shows
+   the app's name and the address it returns to. Their answer goes to
+   `POST /api/oauth/authorizations/{id}/approve` or `/deny`, which returns the client's redirect URL.
+4. The client exchanges the code at `POST /oauth/token`. Access tokens last an hour; refresh tokens
+   30 days.
+
+OAuth access tokens work on `/mcp` only, never on the REST API. Settings lists the connected apps
+(`GET /api/oauth/connections`) and disconnects one (`DELETE /api/oauth/connections/{client}`).
+Changing or resetting the password, deleting the account or removing a member disconnects every
+app, as it signs out every session. `passport:purge` clears expired tokens daily.
 
 Implementation: `app/Mcp/Servers/TaskBoardServer.php`, tools in `app/Mcp/Tools`, route in `routes/ai.php`,
 tests in `tests/Feature/Mcp`.
@@ -234,6 +255,8 @@ stuffing, mass signups and mail floods:
 | `mail` | forgot/reset password | 3/min per email+IP, 20/hour per IP |
 | `verification` | resending the verification email | 3/min per user |
 | `invitations` | sending and re-sending invitations | 10/min and 100/hour per owner |
+| `oauth` | OAuth discovery, authorize, token and the consent answers | 120/min per IP (hosted clients share addresses) |
+| `oauth-register` | OAuth client registration | 60/hour per IP |
 | `account` | changing or deleting the account; setting up or turning off two-factor authentication, new recovery codes | 6/min per user |
 
 The login limiter is keyed on the email *and* the IP so that flooding one address
@@ -291,4 +314,3 @@ resources/lang         en / fr messages
 - Workspace switching (one workspace per account today)
 - Real-time board updates (Laravel Reverb)
 - Cursor pagination on the REST list endpoints (today they take a `limit`)
-- OAuth (Passport) for MCP clients that cannot send a static bearer token

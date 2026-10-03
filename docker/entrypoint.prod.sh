@@ -11,6 +11,10 @@ if [ -n "$STRIPE_SECRET" ] && [ -z "$STRIPE_WEBHOOK_SECRET" ]; then
     echo "warning: STRIPE_WEBHOOK_SECRET is empty, so the Stripe webhook is disabled and plans will not update." >&2
 fi
 
+if { [ -z "$PASSPORT_PRIVATE_KEY" ] || [ -z "$PASSPORT_PUBLIC_KEY" ]; } && [ ! -f storage/oauth-private.key ]; then
+    echo "warning: PASSPORT_PRIVATE_KEY or PASSPORT_PUBLIC_KEY is empty, so OAuth for MCP clients is off; the MCP server takes API tokens only." >&2
+fi
+
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache

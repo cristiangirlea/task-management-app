@@ -5,6 +5,8 @@ use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\InvitationAcceptController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\OAuth\ConnectionController;
+use App\Http\Controllers\OAuth\ConsentController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\TaskController;
@@ -63,6 +65,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/billing', [BillingController::class, 'show'])->name('billing.show');
     Route::post('/billing/checkout', [BillingController::class, 'checkout'])->name('billing.checkout');
     Route::post('/billing/portal', [BillingController::class, 'portal'])->name('billing.portal');
+
+    // OAuth for MCP clients: the consent screen's request and answer, and
+    // the apps that were allowed in. (The OAuth endpoints are in ai.php.)
+    Route::get('/oauth/authorizations/{authorization}', [ConsentController::class, 'show'])->name('oauth.authorizations.show');
+    Route::middleware('throttle:oauth')->group(function () {
+        Route::post('/oauth/authorizations/{authorization}/approve', [ConsentController::class, 'approve'])->name('oauth.authorizations.approve');
+        Route::post('/oauth/authorizations/{authorization}/deny', [ConsentController::class, 'deny'])->name('oauth.authorizations.deny');
+    });
+    Route::get('/oauth/connections', [ConnectionController::class, 'index'])->name('oauth.connections.index');
+    Route::delete('/oauth/connections/{client}', [ConnectionController::class, 'destroy'])->name('oauth.connections.destroy');
 
     Route::get('/tokens', [TokenController::class, 'index'])->name('tokens.index');
     Route::post('/tokens', [TokenController::class, 'store'])->name('tokens.store');

@@ -14,3 +14,6 @@ if ($output = config('logging.schedule_output')) {
 Schedule::call(fn () => touch(storage_path('framework/schedule-heartbeat')))
     ->everyMinute()
     ->name('heartbeat');
+
+// Expired and revoked OAuth tokens and codes (MCP clients), kept a week.
+Schedule::command('passport:purge')->daily()->withoutOverlapping();

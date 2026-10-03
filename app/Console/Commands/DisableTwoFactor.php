@@ -34,8 +34,8 @@ class DisableTwoFactor extends Command
         }
 
         $twoFactor->disable($user);
-        $user->tokens()->delete();
-        $this->info("Two-factor authentication is off for {$user->email}, and its sessions are signed out.");
+        $user->signOutEverywhere();
+        $this->info("Two-factor authentication is off for {$user->email}, and its sessions and connected apps are signed out.");
 
         return self::SUCCESS;
     }
