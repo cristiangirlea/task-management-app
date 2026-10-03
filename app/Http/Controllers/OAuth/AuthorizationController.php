@@ -19,15 +19,14 @@ class AuthorizationController
 {
     use ConvertsPsrResponses;
 
-    public function __construct(
-        protected AuthorizationServer $server,
-        protected PendingAuthorizations $pending,
-    ) {}
+    public function __construct(protected PendingAuthorizations $pending) {}
 
-    public function __invoke(ServerRequestInterface $psrRequest, ResponseInterface $psrResponse): Response
+    // The server is resolved per request: it needs Passport's keys, which
+    // `route:list` (it builds every controller) must not.
+    public function __invoke(ServerRequestInterface $psrRequest, ResponseInterface $psrResponse, AuthorizationServer $server): Response
     {
         try {
-            $authRequest = $this->server->validateAuthorizationRequest($psrRequest);
+            $authRequest = $server->validateAuthorizationRequest($psrRequest);
         } catch (OAuthServerException $e) {
             // Back to the client when its redirect URI checked out; otherwise
             // an error here, never a redirect to an unregistered address.

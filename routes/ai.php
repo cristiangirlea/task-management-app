@@ -1,13 +1,13 @@
 <?php
 
 use App\Http\Controllers\OAuth\AuthorizationController;
+use App\Http\Controllers\OAuth\TokenController;
 use App\Http\Middleware\AuthenticateMcp;
 use App\Http\Middleware\RejectMalformedClientId;
 use App\Mcp\Servers\TaskBoardServer;
 use Illuminate\Support\Facades\Route;
 use Laravel\Mcp\Facades\Mcp;
 use Laravel\Mcp\Server\Http\Controllers\OAuthRegisterController;
-use Laravel\Passport\Http\Controllers\AccessTokenController;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,7 +36,7 @@ Route::middleware('throttle:oauth')->group(function () {
 
     Route::middleware(RejectMalformedClientId::class)->group(function () {
         Route::get('/oauth/authorize', AuthorizationController::class)->name('passport.authorizations.authorize');
-        Route::post('/oauth/token', [AccessTokenController::class, 'issueToken'])->name('passport.token');
+        Route::post('/oauth/token', TokenController::class)->name('passport.token');
     });
 });
 

@@ -22,10 +22,9 @@ use Psr\Http\Message\ResponseInterface;
  */
 class ConsentController extends ApiBaseController
 {
-    public function __construct(
-        protected AuthorizationServer $server,
-        protected PendingAuthorizations $pending,
-    ) {}
+    // The authorization server is resolved per answer: it needs Passport's
+    // keys, which `route:list` (it builds every controller) must not.
+    public function __construct(protected PendingAuthorizations $pending) {}
 
     public function show(string $authorization): JsonResponse
     {
@@ -46,7 +45,7 @@ class ConsentController extends ApiBaseController
         ]);
     }
 
-    public function approve(Request $request, ResponseInterface $psrResponse, string $authorization): JsonResponse
+    public function approve(Request $request, ResponseInterface $psrResponse, AuthorizationServer $server, string $authorization): JsonResponse
     {
         $authRequest = $this->pending->pull($authorization);
         if ($authRequest === null) {
@@ -55,12 +54,12 @@ class ConsentController extends ApiBaseController
 
         $authRequest->setUser(new OAuthUser($request->user()->getAuthIdentifier()));
         $authRequest->setAuthorizationApproved(true);
-        $response = $this->server->completeAuthorizationRequest($authRequest, $psrResponse);
+        $response = $server->completeAuthorizationRequest($authRequest, $psrResponse);
 
         return $this->respondApiSuccess(null, ['redirect_url' => $response->getHeaderLine('Location')], __('oauth.approved'));
     }
 
-    public function deny(Request $request, ResponseInterface $psrResponse, string $authorization): JsonResponse
+    public function deny(Request $request, ResponseInterface $psrResponse, AuthorizationServer $server, string $authorization): JsonResponse
     {
         $authRequest = $this->pending->pull($authorization);
         if ($authRequest === null) {
@@ -71,7 +70,7 @@ class ConsentController extends ApiBaseController
         $authRequest->setAuthorizationApproved(false);
 
         try {
-            $this->server->completeAuthorizationRequest($authRequest, $psrResponse);
+            $server->completeAuthorizationRequest($authRequest, $psrResponse);
             $location = null;
         } catch (OAuthServerException $e) {
             // access_denied, with the client's state, on its redirect URI.
