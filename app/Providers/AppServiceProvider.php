@@ -74,6 +74,18 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('verification', fn (Request $request) => Limit::perMinute(3)->by($request->user()?->id ?: $request->ip()));
 
+        // Each of these checks a password or a code; per user, so guessing
+        // either through a stolen token is slow.
+        RateLimiter::for('two-factor', fn (Request $request) => Limit::perMinute(6)->by($request->user()?->id ?: $request->ip()));
+
+        // The second sign-in step carries no email, so it is limited per
+        // challenge (each also allows only 5 wrong codes) and, more loosely,
+        // per IP: people signing in from one office must not share 5 a minute.
+        RateLimiter::for('two-factor-login', fn (Request $request) => [
+            Limit::perMinute(5)->by('challenge:'.hash('sha256', (string) $request->input('challenge'))),
+            Limit::perMinute(30)->by($request->ip()),
+        ]);
+
         // Sending and re-sending invitations emails someone; per owner, so
         // people behind one office IP do not share a budget.
         RateLimiter::for('invitations', fn (Request $request) => [

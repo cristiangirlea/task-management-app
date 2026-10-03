@@ -15,6 +15,7 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'role' => $this->role,
             'email_verified_at' => $this->email_verified_at?->toIso8601String(),
+            'two_factor_enabled' => $this->hasTwoFactorEnabled(),
             'tenant' => new TenantResource($this->whenLoaded('tenant')),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
