@@ -25,6 +25,14 @@ class McpHttpTest extends TestCase
             ->assertUnauthorized();
     }
 
+    public function test_a_wrong_token_is_refused_even_without_oauth_set_up(): void
+    {
+        $this->withToken('not-a-token')
+            ->withHeaders(self::ACCEPT)
+            ->postJson('/mcp', $this->rpc('tools/list'))
+            ->assertUnauthorized();
+    }
+
     public function test_get_is_not_allowed_on_the_streamable_http_endpoint(): void
     {
         $this->get('/mcp')->assertStatus(405);

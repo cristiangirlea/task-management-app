@@ -94,14 +94,10 @@ class UserController extends ApiBaseController
             rescue(fn () => $user->sendEmailVerificationNotification());
         }
 
-        // Changing the password ends every other session, matching a reset:
-        // whoever is locked out is meant to be locked out.
+        // Changing the password ends every other session, matching a reset.
         if ($request->filled('password')) {
-            $current = $request->user()->currentAccessToken();
-
-            $user->tokens()
-                ->when($current instanceof PersonalAccessToken, fn ($query) => $query->whereKeyNot($current->id))
-                ->delete();
+            $current = $user->currentAccessToken();
+            $user->signOutEverywhere($current instanceof PersonalAccessToken ? $current : null);
         }
 
         return $this->respondApiSuccess(UserResource::class, $user->load('tenant'), 'User updated successfully');
@@ -113,7 +109,7 @@ class UserController extends ApiBaseController
 
         $user = $request->user();
         $tenant = $user->tenant;
-        $user->tokens()->delete();
+        $user->signOutEverywhere();
         $user->delete();
 
         if ($tenant !== null) {

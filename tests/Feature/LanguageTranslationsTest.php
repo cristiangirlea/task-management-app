@@ -29,6 +29,13 @@ class LanguageTranslationsTest extends TestCase
             'two_factor.challenge_expired',
             'two_factor.too_many_attempts',
         ],
+        'oauth' => [
+            'expired',
+            'approved',
+            'denied',
+            'disconnected',
+            'not_connected',
+        ],
         'tenant' => [
             'store.success',
             'store.error',

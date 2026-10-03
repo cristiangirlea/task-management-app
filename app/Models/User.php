@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Notifications\ResetPasswordNotification;
 use App\Notifications\VerifyEmailNotification;
+use App\Services\OAuth\OAuthConnections;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -90,6 +92,20 @@ class User extends Authenticatable implements MustVerifyEmail
     public function scopeByEmailDomain(Builder $query, string $domain): Builder
     {
         return $query->where('email', 'like', '%'.$domain);
+    }
+
+    /**
+     * Ends every session, API token and connected MCP app, except the given
+     * token (the one making a password change, say): after a password change
+     * or reset, whoever is locked out is meant to be locked out.
+     */
+    public function signOutEverywhere(?PersonalAccessToken $keep = null): void
+    {
+        $this->tokens()
+            ->when($keep !== null, fn ($query) => $query->whereKeyNot($keep->id))
+            ->delete();
+
+        app(OAuthConnections::class)->disconnectAll($this);
     }
 
     /**

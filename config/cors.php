@@ -15,7 +15,9 @@ return [
     |
     */
 
-    'paths' => ['api/*', 'mcp/*', 'sanctum/csrf-cookie'],
+    // The MCP endpoint and OAuth's are called from browsers too (web-based
+    // MCP clients), which must also read the 401's WWW-Authenticate header.
+    'paths' => ['api/*', 'mcp', 'oauth/*', '.well-known/*', 'sanctum/csrf-cookie'],
 
     'allowed_methods' => ['*'],
 
@@ -25,7 +27,7 @@ return [
 
     'allowed_headers' => ['*'],
 
-    'exposed_headers' => [],
+    'exposed_headers' => ['WWW-Authenticate', 'Mcp-Session-Id'],
 
     'max_age' => 0,
 

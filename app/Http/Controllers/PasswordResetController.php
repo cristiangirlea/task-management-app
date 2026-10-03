@@ -27,7 +27,8 @@ class PasswordResetController extends ApiBaseController
 
     /**
      * Set a new password and sign every existing session out: a reset is the
-     * remedy for a compromised account, so old bearer tokens must stop working.
+     * remedy for a compromised account, so old bearer tokens and connected
+     * apps must stop working.
      */
     public function reset(ResetPasswordRequest $request): JsonResponse
     {
@@ -35,7 +36,7 @@ class PasswordResetController extends ApiBaseController
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (User $user, string $password) {
                 $user->forceFill(['password' => $password])->save();
-                $user->tokens()->delete();
+                $user->signOutEverywhere();
 
                 event(new PasswordReset($user));
             },

@@ -42,6 +42,13 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // OAuth access tokens (Passport), issued to MCP clients. Only the MCP
+        // endpoint accepts them; the REST API takes Sanctum tokens only.
+        'api' => [
+            'driver' => 'passport',
+            'provider' => 'users',
+        ],
     ],
 
     /*

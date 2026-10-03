@@ -44,7 +44,7 @@ class MemberController extends ApiBaseController
             return $this->respondApiError(__('member.destroy.owner'), 422);
         }
 
-        $member->tokens()->delete();
+        $member->signOutEverywhere();
         $member->delete();
 
         $this->billing->syncSeats($tenant);
