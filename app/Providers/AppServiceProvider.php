@@ -74,9 +74,10 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('verification', fn (Request $request) => Limit::perMinute(3)->by($request->user()?->id ?: $request->ip()));
 
-        // Each of these checks a password or a code; per user, so guessing
-        // either through a stolen token is slow.
-        RateLimiter::for('two-factor', fn (Request $request) => Limit::perMinute(6)->by($request->user()?->id ?: $request->ip()));
+        // Account changes and two-factor settings, each of which checks a
+        // password or a code; per user, so guessing either through a stolen
+        // token is slow.
+        RateLimiter::for('account', fn (Request $request) => Limit::perMinute(6)->by($request->user()?->id ?: $request->ip()));
 
         // The second sign-in step carries no email, so it is limited per
         // challenge (each also allows only 5 wrong codes) and, more loosely,

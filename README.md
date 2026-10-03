@@ -116,7 +116,9 @@ All responses use one envelope:
 | GET | `/api/email/verify/{id}/{hash}` | signed link from the email | marks the address verified, redirects to `<FRONTEND_URL>/verify-email?status=…` |
 | POST | `/api/email/verification-notification` | | resend (auth, throttled) |
 | POST | `/api/logout` | | revokes the current token |
-| GET / PUT / DELETE | `/api/user` | `name?, email?, password?` | current user (includes `tenant` and `two_factor_enabled`) |
+| GET | `/api/user` | | current user (includes `tenant` and `two_factor_enabled`) |
+| PUT | `/api/user` | `name?, email?, password?, password_confirmation?, current_password?` | `current_password` is required to change the password or the email; a new email is unverified until its link is followed; throttled |
+| DELETE | `/api/user` | `password` | deletes the account; throttled |
 | POST | `/api/user/two-factor` | `password` | starts setup: `{secret, otpauth_url, qr_code}` (a data URI); not in force yet |
 | POST | `/api/user/two-factor/confirm` | `code` | puts it in force; `{recovery_codes, user}` |
 | DELETE | `/api/user/two-factor` | `password` | turns it off |
@@ -232,7 +234,7 @@ stuffing, mass signups and mail floods:
 | `mail` | forgot/reset password | 3/min per email+IP, 20/hour per IP |
 | `verification` | resending the verification email | 3/min per user |
 | `invitations` | sending and re-sending invitations | 10/min and 100/hour per owner |
-| `two-factor` | setting up, turning off, new recovery codes | 6/min per user |
+| `account` | changing or deleting the account; setting up or turning off two-factor authentication, new recovery codes | 6/min per user |
 
 The login limiter is keyed on the email *and* the IP so that flooding one address
 cannot lock its owner out from elsewhere.

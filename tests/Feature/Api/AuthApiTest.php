@@ -99,7 +99,7 @@ class AuthApiTest extends TestCase
     {
         $user = $this->actingAsTenantUser();
 
-        $this->putJson('/api/user', ['name' => 'Renamed', 'email' => 'renamed@example.com'])
+        $this->putJson('/api/user', ['name' => 'Renamed', 'email' => 'renamed@example.com', 'current_password' => 'password'])
             ->assertOk()
             ->assertJsonPath('data.name', 'Renamed');
 
@@ -111,7 +111,7 @@ class AuthApiTest extends TestCase
         User::factory()->create(['email' => 'taken@example.com']);
         $this->actingAsTenantUser();
 
-        $this->putJson('/api/user', ['email' => 'taken@example.com'])
+        $this->putJson('/api/user', ['email' => 'taken@example.com', 'current_password' => 'password'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['email']);
     }
@@ -133,7 +133,7 @@ class AuthApiTest extends TestCase
     {
         $user = $this->actingAsTenantUser();
 
-        $this->deleteJson('/api/user')->assertNoContent();
+        $this->deleteJson('/api/user', ['password' => 'password'])->assertNoContent();
 
         $this->assertDatabaseMissing('users', ['id' => $user->id]);
     }
