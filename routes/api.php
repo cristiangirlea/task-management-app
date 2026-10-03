@@ -33,10 +33,10 @@ Route::get('/email/verify/{id}/{hash}', [EmailVerificationController::class, 've
 // the token owner's tenant by the models' global scope plus policies.
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [UserController::class, 'getUser'])->name('user.show');
-    Route::put('/user', [UserController::class, 'updateUser'])->name('user.update');
-    Route::delete('/user', [UserController::class, 'deleteUser'])->name('user.destroy');
     Route::post('/logout', [UserController::class, 'logout'])->name('logout');
-    Route::middleware('throttle:two-factor')->group(function () {
+    Route::middleware('throttle:account')->group(function () {
+        Route::put('/user', [UserController::class, 'updateUser'])->name('user.update');
+        Route::delete('/user', [UserController::class, 'deleteUser'])->name('user.destroy');
         Route::post('/user/two-factor', [TwoFactorController::class, 'store'])->name('two-factor.store');
         Route::post('/user/two-factor/confirm', [TwoFactorController::class, 'confirm'])->name('two-factor.confirm');
         Route::delete('/user/two-factor', [TwoFactorController::class, 'destroy'])->name('two-factor.destroy');

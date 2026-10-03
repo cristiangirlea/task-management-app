@@ -196,7 +196,7 @@ class BillingTest extends TestCase
         $this->subscribe($owner->tenant);
         $this->actingAsTenantUser($owner->tenant, ['role' => User::ROLE_MEMBER]);
 
-        $this->deleteJson('/api/user')->assertNoContent();
+        $this->deleteJson('/api/user', ['password' => 'password'])->assertNoContent();
 
         $this->assertSame([['tenant_id' => $owner->tenant_id, 'seats' => 1]], $this->seatSync()->synced);
     }

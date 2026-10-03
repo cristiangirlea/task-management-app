@@ -80,7 +80,19 @@ class UserController extends ApiBaseController
     public function updateUser(UpdateUserRequest $request): JsonResponse
     {
         $user = $request->user();
-        $user->fill($request->validated())->save();
+        $user->fill($request->safe()->except('current_password'));
+
+        // A new address is unverified until its owner follows the link sent to it.
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+        $user->save();
+
+        if ($user->wasChanged('email')) {
+            // Reported rather than thrown: the change is saved, and the link
+            // can be sent again from the app.
+            rescue(fn () => $user->sendEmailVerificationNotification());
+        }
 
         // Changing the password ends every other session, matching a reset:
         // whoever is locked out is meant to be locked out.
@@ -97,6 +109,8 @@ class UserController extends ApiBaseController
 
     public function deleteUser(Request $request): JsonResponse
     {
+        $request->validate(['password' => ['required', 'string', 'current_password:sanctum']]);
+
         $user = $request->user();
         $tenant = $user->tenant;
         $user->tokens()->delete();

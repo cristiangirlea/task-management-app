@@ -112,6 +112,7 @@ class SecurityRegressionTest extends TestCase
         $current = $user->createToken('this-device')->plainTextToken;
 
         $this->withToken($current)->putJson('/api/user', [
+            'current_password' => 'password',
             'password' => 'a-brand-new-password',
             'password_confirmation' => 'a-brand-new-password',
         ])->assertOk();
