@@ -40,9 +40,13 @@ return [
                 'port' => env('REVERB_PORT', 443),
                 'scheme' => env('REVERB_SCHEME', 'https'),
                 'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
+                // Events are sent during the request, so a Reverb that hangs must not
+                // hold a task save for the default 30 seconds (this option and
+                // connect_timeout below). A lost event means a board updates on reload.
+                'timeout' => 2,
             ],
             'client_options' => [
-                // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html
+                'connect_timeout' => 1,
             ],
             // Where browsers connect, e.g. ws://localhost:8080 in local development.
             // Empty: the site itself (/app on the same host, as Caddy routes it).

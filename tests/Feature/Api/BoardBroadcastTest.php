@@ -142,6 +142,26 @@ class BoardBroadcastTest extends TestCase
         Exceptions::assertReported(BroadcastException::class);
     }
 
+    public function test_a_reverb_that_does_not_answer_holds_a_change_for_seconds_at_most(): void
+    {
+        // Accepts connections (the kernel queues them) but never answers.
+        $silent = stream_socket_server('tcp://127.0.0.1:0');
+        $port = (int) substr(strrchr(stream_socket_get_name($silent, false), ':'), 1);
+        $this->useReverb();
+        config(['broadcasting.connections.reverb.options.port' => $port]);
+        Broadcast::forgetDrivers();
+        Exceptions::fake();
+        $task = $this->task();
+
+        $started = microtime(true);
+        $this->putJson("/api/tasks/{$task->id}", ['title' => 'Saved in time'])->assertOk();
+
+        $this->assertLessThan(5, microtime(true) - $started);
+        $this->assertSame('Saved in time', $task->fresh()->title);
+        Exceptions::assertReported(BroadcastException::class);
+        fclose($silent);
+    }
+
     public function test_members_of_the_workspace_may_listen_to_its_projects_only(): void
     {
         $this->useReverb();
