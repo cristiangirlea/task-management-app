@@ -160,6 +160,21 @@ class BoardBroadcastTest extends TestCase
         $auth($foreign)->assertOk();
     }
 
+    public function test_the_web_app_reads_how_to_connect(): void
+    {
+        config(['broadcasting.default' => 'null']);
+        $this->getJson('/api/broadcasting/config')->assertOk()->assertJsonPath('data', null);
+
+        $this->useReverb();
+        $this->getJson('/api/broadcasting/config')->assertOk()->assertJsonPath('data', ['key' => 'app-key', 'url' => null]);
+
+        config(['broadcasting.connections.reverb.public_url' => 'ws://localhost:8080']);
+        $this->getJson('/api/broadcasting/config')->assertJsonPath('data.url', 'ws://localhost:8080');
+
+        $this->app['auth']->forgetGuards();
+        $this->getJson('/api/broadcasting/config')->assertUnauthorized();
+    }
+
     public function test_listening_needs_a_signed_in_user(): void
     {
         $this->useReverb();

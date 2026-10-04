@@ -44,6 +44,9 @@ return [
             'client_options' => [
                 // Guzzle client options: https://docs.guzzlephp.org/en/stable/request-options.html
             ],
+            // Where browsers connect, e.g. ws://localhost:8080 in local development.
+            // Empty: the site itself (/app on the same host, as Caddy routes it).
+            'public_url' => env('REVERB_PUBLIC_URL'),
         ],
 
         'pusher' => [
