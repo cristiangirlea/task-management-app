@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\BroadcastingController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\InvitationAcceptController;
 use App\Http\Controllers\InvitationController;
@@ -75,6 +76,9 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::get('/oauth/connections', [ConnectionController::class, 'index'])->name('oauth.connections.index');
     Route::delete('/oauth/connections/{client}', [ConnectionController::class, 'destroy'])->name('oauth.connections.destroy');
+
+    // Live board updates; the channel authorization is POST /broadcasting/auth (bootstrap/app.php).
+    Route::get('/broadcasting/config', [BroadcastingController::class, 'config'])->name('broadcasting.config');
 
     Route::get('/tokens', [TokenController::class, 'index'])->name('tokens.index');
     Route::post('/tokens', [TokenController::class, 'store'])->name('tokens.store');

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\BoardChanged;
 use App\Models\Task;
 use App\Repositories\TaskRepository;
 use Illuminate\Database\Eloquent\Collection;
@@ -42,7 +43,10 @@ class TaskService
         $data['status'] = $data['status'] ?? Task::STATUS_PENDING;
         $data['position'] = $this->taskRepository->nextPosition((int) $data['project_id'], $data['status']);
 
-        return $this->taskRepository->create($data);
+        $task = $this->taskRepository->create($data);
+        $this->announce($task->project_id);
+
+        return $task;
     }
 
     /**
@@ -59,12 +63,17 @@ class TaskService
             $data['position'] = $this->taskRepository->nextPosition($projectId, $status);
         }
 
-        return $this->taskRepository->update($task, $data);
+        $fromProjectId = $task->project_id;
+        $task = $this->taskRepository->update($task, $data);
+        $this->announce($fromProjectId, $task->project_id);
+
+        return $task;
     }
 
     public function deleteTask(Task $task): void
     {
         $this->taskRepository->delete($task);
+        $this->announce($task->project_id);
     }
 
     /**
@@ -94,6 +103,7 @@ class TaskService
                 $this->taskRepository->reorder($task->status, $source);
             }
         });
+        $this->announce($task->project_id);
 
         return $task->refresh();
     }
@@ -107,6 +117,24 @@ class TaskService
             $this->taskRepository->reorder($status, $taskIds);
         });
 
-        return $this->taskRepository->findMany($taskIds);
+        $tasks = $this->taskRepository->findMany($taskIds);
+        $this->announce(...$tasks->pluck('project_id'));
+
+        return $tasks;
+    }
+
+    /**
+     * Tell the boards open on these projects to reload, once the change is
+     * committed. The browser that made the change sent its socket ID and is
+     * skipped. A broadcasting failure is reported, never thrown: the change
+     * itself has been saved.
+     */
+    private function announce(int ...$projectIds): void
+    {
+        foreach (array_unique($projectIds) as $projectId) {
+            DB::afterCommit(fn () => rescue(
+                fn () => event((new BoardChanged($projectId))->dontBroadcastToCurrentUser()),
+            ));
+        }
     }
 }

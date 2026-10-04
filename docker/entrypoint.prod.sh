@@ -15,6 +15,11 @@ if { [ -z "$PASSPORT_PRIVATE_KEY" ] || [ -z "$PASSPORT_PUBLIC_KEY" ]; } && [ ! -
     echo "warning: PASSPORT_PRIVATE_KEY or PASSPORT_PUBLIC_KEY is empty, so OAuth for MCP clients is off; the MCP server takes API tokens only." >&2
 fi
 
+if [ "$BROADCAST_CONNECTION" = "reverb" ] && { [ -z "$REVERB_APP_ID" ] || [ -z "$REVERB_APP_KEY" ] || [ -z "$REVERB_APP_SECRET" ]; }; then
+    echo "error: BROADCAST_CONNECTION is reverb, but REVERB_APP_ID, REVERB_APP_KEY or REVERB_APP_SECRET is empty. Set all three, or set BROADCAST_CONNECTION=null to turn live board updates off." >&2
+    exit 1
+fi
+
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
