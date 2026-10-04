@@ -9,7 +9,8 @@ FROM php:8.4-fpm-alpine AS base
 # fcgi: cgi-fcgi, used by the health check to ping php-fpm directly.
 RUN apk add --no-cache fcgi
 COPY --from=mlocati/php-extension-installer:2 /usr/bin/install-php-extensions /usr/local/bin/
-RUN install-php-extensions pdo_pgsql pgsql redis opcache zip bcmath
+# pcntl: signal handling for long-running commands (reverb:start).
+RUN install-php-extensions pdo_pgsql pgsql redis opcache zip bcmath pcntl
 
 WORKDIR /var/www/html
 
