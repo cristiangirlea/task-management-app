@@ -6,6 +6,8 @@ use App\Models\Project;
 use App\Models\User;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
+use Laravel\Passport\ClientRepository;
+use Laravel\Passport\Passport;
 use Laravel\Sanctum\Sanctum;
 use Tests\Concerns\UsesOAuthKeys;
 use Tests\TestCase;
@@ -232,6 +234,35 @@ class OAuthTest extends TestCase
 
         $this->mcp($fresh['access_token'])->assertOk();
         $this->mcp($tokens['access_token'])->assertUnauthorized();
+    }
+
+    public function test_clients_nobody_allowed_in_are_deleted_after_a_day(): void
+    {
+        $user = User::factory()->create();
+        $connected = $this->connect($user);
+        $abandoned = $this->register('Abandoned');
+        $denied = $this->register('Denied');
+        $id = $this->startAuthorization($this->authorizeParams($denied)['query']);
+        Sanctum::actingAs($user);
+        $this->postJson("/api/oauth/authorizations/{$id}/deny")->assertOk();
+        $this->forgetUser();
+        $owned = app(ClientRepository::class)->createAuthorizationCodeGrantClient('First party', [self::REDIRECT])->id;
+        Passport::client()->newQuery()->whereKey($owned)->update(['owner_type' => $user->getMorphClass(), 'owner_id' => $user->id]);
+
+        $this->travel(25)->hours();
+        $recent = $this->register('Recent');
+        $this->artisan('oauth:purge-clients')->expectsOutputToContain('Deleted 2 OAuth clients')->assertSuccessful();
+
+        $left = Passport::client()->newQuery()->pluck('id')->all();
+        $this->assertEqualsCanonicalizing([$connected['client_id'], $owned, $recent], $left);
+        $this->assertNotContains($abandoned, $left);
+
+        // A day on, the app that was allowed in still renews its access.
+        $this->postJson('/oauth/token', [
+            'grant_type' => 'refresh_token',
+            'client_id' => $connected['client_id'],
+            'refresh_token' => $connected['refresh_token'],
+        ])->assertOk();
     }
 
     public function test_denying_sends_the_browser_back_with_access_denied(): void

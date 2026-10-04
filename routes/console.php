@@ -17,3 +17,6 @@ Schedule::call(fn () => touch(storage_path('framework/schedule-heartbeat')))
 
 // Expired and revoked OAuth tokens and codes (MCP clients), kept a week.
 Schedule::command('passport:purge')->daily()->withoutOverlapping();
+
+// MCP clients that registered more than a day ago and were never allowed in.
+Schedule::command('oauth:purge-clients')->daily()->withoutOverlapping();
