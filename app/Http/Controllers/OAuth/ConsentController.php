@@ -55,6 +55,11 @@ class ConsentController extends ApiBaseController
         $authRequest->setUser(new OAuthUser($request->user()->getAuthIdentifier()));
         $authRequest->setAuthorizationApproved(true);
         $response = $server->completeAuthorizationRequest($authRequest, $psrResponse);
+        // Kept from oauth:purge-clients, which removes clients never allowed in.
+        Passport::client()->newQuery()
+            ->whereKey($authRequest->getClient()->getIdentifier())
+            ->whereNull('authorized_at')
+            ->update(['authorized_at' => now()]);
 
         return $this->respondApiSuccess(null, ['redirect_url' => $response->getHeaderLine('Location')], __('oauth.approved'));
     }
